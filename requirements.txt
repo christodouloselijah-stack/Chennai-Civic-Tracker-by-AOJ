@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+apscheduler
+jinja2
+reportlab
+python-multipart
+feedparser
+requests
+beautifulsoup4

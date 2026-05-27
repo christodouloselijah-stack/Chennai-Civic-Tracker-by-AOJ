@@ -1,0 +1,9 @@
+{
+  "appId": "com.aoj.civictracker",
+  "appName": "Civic Tracker by AOJ",
+  "webDir": "static",
+  "server": {
+    "url": "http://127.0.0.1:8000",
+    "cleartext": true
+  }
+}

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civic Tracker by AOJ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-900 flex">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
+        <div class="p-6 border-b border-indigo-800 flex flex-col items-start gap-2">
+            <!-- Dynamic Logo -->
+            <img src="/static/logo.png?v=1" alt="AOJ Logo" class="h-12 w-auto object-contain hidden" id="app-logo" onload="this.classList.remove('hidden'); document.getElementById('logo-placeholder').classList.add('hidden')" onerror="this.classList.add('hidden'); document.getElementById('logo-placeholder').classList.remove('hidden')">
+            <div id="logo-placeholder" class="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center font-black text-lg text-white shadow-md">
+                AOJ
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight mt-1">Civic<span class="text-indigo-400">Tracker</span></h1>
+                <p class="text-indigo-300 text-xs font-medium">by AOJ</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="#" id="nav-dashboard" class="block px-4 py-3 bg-indigo-800 rounded-lg font-medium transition flex items-center gap-3">
+                <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                Dashboard
+            </a>
+            <a href="#" id="nav-reports" class="block px-4 py-3 hover:bg-indigo-800 rounded-lg font-medium transition flex items-center gap-3 opacity-75 hover:opacity-100">
+                <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                All Reports
+            </a>
+            <a href="#" id="nav-teams" class="block px-4 py-3 hover:bg-indigo-800 rounded-lg font-medium transition flex items-center gap-3 opacity-75 hover:opacity-100">
+                <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                Teams
+            </a>
+        </nav>
+        <div class="p-6 border-t border-indigo-800">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-bold">A</div>
+                <div>
+                    <p class="text-sm font-medium">Admin User</p>
+                    <p class="text-xs text-indigo-300">View Profile</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- Top Bar -->
+        <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10">
+            <h2 class="text-xl font-semibold text-gray-800">Overview</h2>
+            <div class="flex items-center gap-4">
+                <label for="constituency-select" class="sr-only">Select Constituency</label>
+                <select id="constituency-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white min-w-[250px]">
+                    <option value="all">Overall Chennai (All Constituencies)</option>
+                </select>
+                <input type="month" id="month-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white">
+                <button id="download-btn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg shadow-md transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export PDF
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8">
+            
+            <div id="dashboard-content" class="hidden">
+                <!-- Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Issues -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Total Issues</p>
+                            <h3 id="stat-total" class="text-3xl font-bold text-gray-900">0</h3>
+                        </div>
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                    </div>
+                    <!-- Reported -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Reported</p>
+                            <h3 id="stat-reported" class="text-3xl font-bold text-red-600">0</h3>
+                        </div>
+                        <div class="p-3 bg-red-50 text-red-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                    </div>
+                    <!-- In Progress -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">In Progress</p>
+                            <h3 id="stat-inprogress" class="text-3xl font-bold text-yellow-600">0</h3>
+                        </div>
+                        <div class="p-3 bg-yellow-50 text-yellow-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                    </div>
+                    <!-- Resolved -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Resolved</p>
+                            <h3 id="stat-resolved" class="text-3xl font-bold text-green-600">0</h3>
+                        </div>
+                        <div class="p-3 bg-green-50 text-green-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Updates of the Day (Latest) -->
+                <div id="updates-of-the-day-section" class="mb-8 hidden">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        Updates of the Day
+                    </h3>
+                    <div id="updates-of-the-day-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Today's updates injected here -->
+                    </div>
+                </div>
+
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <!-- Chart Section -->
+                    <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Status Distribution</h3>
+                        <div class="flex-1 relative w-full flex justify-center items-center">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Updates Feed -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Recent Updates</h3>
+                            <span id="view-all-updates" class="text-sm text-indigo-600 font-medium cursor-pointer hover:underline">View All</span>
+                        </div>
+                        <div id="updates-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Feed items injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="empty-state" class="flex flex-col items-center justify-center h-full text-center py-20">
+                <svg class="w-20 h-20 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                <h2 class="text-2xl font-bold text-gray-500">Welcome to Civic Tracker</h2>
+                <p class="text-gray-400 mt-2 max-w-md">Please select a constituency from the dropdown menu above to view its daily civic updates and statistics.</p>
+            </div>
+
+            <!-- All Reports View -->
+            <div id="reports-content" class="hidden">
+                <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Civic Reports Center</h2>
+                        <p class="text-gray-500 text-sm mt-1">Download monthly PDF reports or view status for all Chennai constituencies.</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="reports-grid">
+                    <!-- Dynamic constituency cards for reports -->
+                </div>
+            </div>
+
+            <!-- Teams View -->
+            <div id="teams-content" class="hidden">
+                <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Municipal Response Teams</h2>
+                        <p class="text-gray-500 text-sm mt-1">Active officers and specialist staff managing civic tasks across Chennai zones.</p>
+                    </div>
+                    <div>
+                        <input type="text" id="team-search" placeholder="Search team or zone..." class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white min-w-[200px]">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="teams-grid">
+                    <!-- Dynamic team profiles will go here -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+    <script src="/static/app.js?v=106"></script>
+</body>
+</html>
