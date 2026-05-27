@@ -8,3 +8,5 @@ python-multipart
 feedparser
 requests
 beautifulsoup4
+googlenewsdecoder
+pytz
