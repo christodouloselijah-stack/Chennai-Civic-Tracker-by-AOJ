@@ -156,13 +156,22 @@ def ingest_real_data():
             if len(description) > 300:
                 description = description[:300] + "..."
         
+        # Parse the published date
+        article_date = today
+        if hasattr(entry, 'published_parsed') and entry.published_parsed:
+            try:
+                tp = entry.published_parsed
+                article_date = datetime.date(tp.tm_year, tp.tm_mon, tp.tm_mday)
+            except Exception:
+                pass
+
         update = CivicUpdate(
             constituency_id=constituency.id,
             title=title,
             description=description,
             status=status,
             image_url=image_url,
-            date=today,
+            date=article_date,
             source=source,
             article_url=real_url
         )
