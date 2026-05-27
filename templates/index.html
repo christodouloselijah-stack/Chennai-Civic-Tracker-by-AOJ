@@ -74,82 +74,119 @@
         <div class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6">
             
             <div id="dashboard-content" class="hidden">
-                <!-- Metrics Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                    <!-- Total Issues -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Total Issues</p>
-                            <h3 id="stat-total" class="text-3xl font-bold text-gray-900">0</h3>
+                <div id="main-dashboard-view">
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                        <!-- Total Issues -->
+                        <div id="card-total" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-indigo-200 transition duration-200">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Total Issues</p>
+                                <h3 id="stat-total" class="text-3xl font-bold text-gray-900">0</h3>
+                            </div>
+                            <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            </div>
                         </div>
-                        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        <!-- Reported -->
+                        <div id="card-reported" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-red-200 transition duration-200">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Reported</p>
+                                <h3 id="stat-reported" class="text-3xl font-bold text-red-600">0</h3>
+                            </div>
+                            <div class="p-3 bg-red-50 text-red-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                        </div>
+                        <!-- In Progress -->
+                        <div id="card-inprogress" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-yellow-200 transition duration-200">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">In Progress</p>
+                                <h3 id="stat-inprogress" class="text-3xl font-bold text-yellow-600">0</h3>
+                            </div>
+                            <div class="p-3 bg-yellow-50 text-yellow-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </div>
+                        </div>
+                        <!-- Resolved -->
+                        <div id="card-resolved" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-green-200 transition duration-200">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Resolved</p>
+                                <h3 id="stat-resolved" class="text-3xl font-bold text-green-600">0</h3>
+                            </div>
+                            <div class="p-3 bg-green-50 text-green-600 rounded-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
                         </div>
                     </div>
-                    <!-- Reported -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Reported</p>
-                            <h3 id="stat-reported" class="text-3xl font-bold text-red-600">0</h3>
-                        </div>
-                        <div class="p-3 bg-red-50 text-red-600 rounded-lg">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                        </div>
-                    </div>
-                    <!-- In Progress -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">In Progress</p>
-                            <h3 id="stat-inprogress" class="text-3xl font-bold text-yellow-600">0</h3>
-                        </div>
-                        <div class="p-3 bg-yellow-50 text-yellow-600 rounded-lg">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+
+                    <!-- Updates of the Day (Latest) -->
+                    <div id="updates-of-the-day-section" class="mb-8 hidden">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <span class="relative flex h-3 w-3">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
+                            Updates of the Day
+                        </h3>
+                        <div id="updates-of-the-day-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Today's updates injected here -->
                         </div>
                     </div>
-                    <!-- Resolved -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Resolved</p>
-                            <h3 id="stat-resolved" class="text-3xl font-bold text-green-600">0</h3>
+
+                    <!-- Main Content Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                        <!-- Chart Section -->
+                        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">Status Distribution</h3>
+                            <div class="flex-1 relative w-full flex justify-center items-center">
+                                <canvas id="statusChart"></canvas>
+                            </div>
                         </div>
-                        <div class="p-3 bg-green-50 text-green-600 rounded-lg">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+
+                        <!-- Recent Updates Feed -->
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Recent Updates</h3>
+                                <span id="view-all-updates" class="text-sm text-indigo-600 font-medium cursor-pointer hover:underline">View All</span>
+                            </div>
+                            <div id="updates-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Feed items injected here -->
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Updates of the Day (Latest) -->
-                <div id="updates-of-the-day-section" class="mb-8 hidden">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span class="relative flex h-3 w-3">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
-                        Updates of the Day
-                    </h3>
-                    <div id="updates-of-the-day-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Today's updates injected here -->
-                    </div>
-                </div>
-
-                <!-- Main Content Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <!-- Chart Section -->
-                    <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Status Distribution</h3>
-                        <div class="flex-1 relative w-full flex justify-center items-center">
-                            <canvas id="statusChart"></canvas>
+                <!-- Sub-Dashboard Section -->
+                <div id="sub-dashboard-view" class="hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <button id="btn-back-to-dashboard" class="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition mb-2 focus:outline-none">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                Back to Overview
+                            </button>
+                            <h3 id="sub-dashboard-title" class="text-2xl font-bold text-gray-800">Status Details</h3>
+                            <p id="sub-dashboard-subtitle" class="text-sm text-gray-500 mt-1">Detailed list of issues under this status.</p>
+                        </div>
+                        <div>
+                            <span id="sub-dashboard-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">STATUS</span>
                         </div>
                     </div>
 
-                    <!-- Recent Updates Feed -->
-                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-lg font-bold text-gray-800">Recent Updates</h3>
-                            <span id="view-all-updates" class="text-sm text-indigo-600 font-medium cursor-pointer hover:underline">View All</span>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Category Distribution Panel -->
+                        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 self-start">
+                            <h4 class="text-base font-bold text-gray-800 mb-4">Issues by Category</h4>
+                            <div class="space-y-4" id="sub-dashboard-categories">
+                                <!-- Dynamically injected category bars -->
+                            </div>
                         </div>
-                        <div id="updates-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Feed items injected here -->
+                        
+                        <!-- List of updates -->
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h4 class="text-base font-bold text-gray-800 mb-4" id="sub-dashboard-feed-title">Detailed Feed</h4>
+                            <div id="sub-dashboard-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2">
+                                <!-- Dynamically injected list cards -->
+                            </div>
                         </div>
                     </div>
                 </div>

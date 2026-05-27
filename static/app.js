@@ -32,6 +32,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let statusChartInstance = null;
     let currentTab = "dashboard";
+    let currentUpdatesData = [];
+
+    // Clickable Cards & Sub-Dashboard
+    const cardTotal = document.getElementById("card-total");
+    const cardReported = document.getElementById("card-reported");
+    const cardInProgress = document.getElementById("card-inprogress");
+    const cardResolved = document.getElementById("card-resolved");
+
+    const mainDashboardView = document.getElementById("main-dashboard-view");
+    const subDashboardView = document.getElementById("sub-dashboard-view");
+    const btnBackToDashboard = document.getElementById("btn-back-to-dashboard");
+    const subDashboardTitle = document.getElementById("sub-dashboard-title");
+    const subDashboardSubtitle = document.getElementById("sub-dashboard-subtitle");
+    const subDashboardBadge = document.getElementById("sub-dashboard-badge");
+    const subDashboardCategories = document.getElementById("sub-dashboard-categories");
+    const subDashboardFeed = document.getElementById("sub-dashboard-feed");
+    const subDashboardFeedTitle = document.getElementById("sub-dashboard-feed-title");
 
     // Set default month to current
     const now = new Date();
@@ -167,10 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .catch(err => console.error("Error loading stats:", err));
 
-        // Fetch Feed
         fetch(updatesUrl)
             .then(response => response.json())
             .then(data => {
+                currentUpdatesData = data;
+                mainDashboardView.classList.remove("hidden");
+                subDashboardView.classList.add("hidden");
+
                 if (data.length === 0) {
                     updatesFeed.innerHTML = "<p class='col-span-full text-gray-500 text-center py-8'>No updates available for the selected month.</p>";
                     return;
@@ -563,6 +583,141 @@ document.addEventListener("DOMContentLoaded", () => {
                 },
                 animation: { animateScale: true, animateRotate: true }
             }
+        });
+    }
+
+    // Dynamic Category Classifier
+    function getCategory(title, description) {
+        const text = (title + " " + description).toLowerCase();
+        if (text.includes("drain") || text.includes("water") || text.includes("flood") || text.includes("sew") || text.includes("canal")) {
+            return "Water & Drainage";
+        }
+        if (text.includes("road") || text.includes("pothole") || text.includes("pavement") || text.includes("bridge") || text.includes("street") || text.includes("flyover")) {
+            return "Roads & Traffic";
+        }
+        if (text.includes("garbage") || text.includes("waste") || text.includes("trash") || text.includes("clean") || text.includes("dump") || text.includes("litter")) {
+            return "Garbage & Sanitation";
+        }
+        if (text.includes("light") || text.includes("power") || text.includes("electr") || text.includes("dark") || text.includes("wire") || text.includes("cable")) {
+            return "Electricity & Power";
+        }
+        return "General Civic Issues";
+    }
+
+    // Render Sub-Dashboard View
+    function showSubDashboard(status) {
+        mainDashboardView.classList.add("hidden");
+        subDashboardView.classList.remove("hidden");
+
+        const filtered = status === "Total" 
+            ? currentUpdatesData 
+            : currentUpdatesData.filter(u => u.status === status);
+
+        // Update badge design
+        let badgeColor = "bg-indigo-100 text-indigo-800";
+        if (status === "Resolved") badgeColor = "bg-green-100 text-green-800";
+        else if (status === "In Progress") badgeColor = "bg-yellow-100 text-yellow-800";
+        else if (status === "Reported") badgeColor = "bg-red-100 text-red-800";
+
+        subDashboardBadge.className = `inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${badgeColor}`;
+        subDashboardBadge.textContent = status === "Total" ? "All Issues" : status;
+        
+        subDashboardTitle.textContent = status === "Total" 
+            ? "Total Civic Issues Overview" 
+            : `${status} Issues Overview`;
+
+        subDashboardSubtitle.textContent = `Showing details for ${filtered.length} issues in the current selection.`;
+        subDashboardFeedTitle.textContent = `${status} Issues Feed (${filtered.length})`;
+
+        // 1. Calculate Category breakdown
+        const categoriesCount = {
+            "Water & Drainage": 0,
+            "Roads & Traffic": 0,
+            "Garbage & Sanitation": 0,
+            "Electricity & Power": 0,
+            "General Civic Issues": 0
+        };
+
+        filtered.forEach(u => {
+            const cat = getCategory(u.title, u.description);
+            categoriesCount[cat] = (categoriesCount[cat] || 0) + 1;
+        });
+
+        subDashboardCategories.innerHTML = "";
+        Object.entries(categoriesCount).forEach(([catName, count]) => {
+            const percentage = filtered.length > 0 ? (count / filtered.length) * 100 : 0;
+            let barColor = "bg-indigo-600";
+            if (status === "Resolved") barColor = "bg-green-500";
+            else if (status === "In Progress") barColor = "bg-yellow-500";
+            else if (status === "Reported") barColor = "bg-red-500";
+
+            const row = document.createElement("div");
+            row.innerHTML = `
+                <div class="flex justify-between items-center text-xs font-medium text-gray-700 mb-1">
+                    <span>${catName}</span>
+                    <span class="font-bold">${count} (${Math.round(percentage)}%)</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div class="${barColor} h-2 rounded-full" style="width: ${percentage}%"></div>
+                </div>
+            `;
+            subDashboardCategories.appendChild(row);
+        });
+
+        // 2. Populate detailed list
+        subDashboardFeed.innerHTML = "";
+        if (filtered.length === 0) {
+            subDashboardFeed.innerHTML = "<p class='col-span-full text-center text-gray-500 py-8'>No issues found under this status.</p>";
+            return;
+        }
+
+        filtered.forEach(update => {
+            const card = document.createElement("a");
+            card.href = update.article_url || "#";
+            card.target = "_blank";
+            card.rel = "noopener noreferrer";
+            card.className = "block bg-gray-50 hover:bg-indigo-50 border border-gray-100 rounded-xl overflow-hidden p-4 transition hover:shadow-sm";
+            
+            let statusBadgeColor = "bg-gray-100 text-gray-800";
+            if (update.status === "Resolved") statusBadgeColor = "bg-green-100 text-green-800";
+            else if (update.status === "In Progress") statusBadgeColor = "bg-yellow-100 text-yellow-800";
+            else if (update.status === "Reported") statusBadgeColor = "bg-red-100 text-red-800";
+
+            let sourceLabel = update.source ? `<span class="text-indigo-600 font-semibold text-[10px] bg-white px-2 py-0.5 rounded-full border border-indigo-100">${update.source}</span>` : "";
+
+            card.innerHTML = `
+                <div class="flex gap-4">
+                    <div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 border border-gray-100">
+                        <img src="${update.image_url}" alt="Thumbnail" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/150/150?random=${update.id}'">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1.5">
+                            <span class="text-[10px] text-gray-400 font-semibold">${update.date}</span>
+                            <div class="flex items-center gap-1">
+                                ${sourceLabel}
+                                <span class="px-2 py-0.5 text-[9px] font-bold rounded-md ${statusBadgeColor}">${update.status}</span>
+                            </div>
+                        </div>
+                        <h4 class="text-sm font-bold text-gray-900 line-clamp-1 mb-1">${update.title}</h4>
+                        <p class="text-xs text-gray-500 line-clamp-2">${update.description}</p>
+                    </div>
+                </div>
+            `;
+            subDashboardFeed.appendChild(card);
+        });
+    }
+
+    // Attach card listeners
+    if (cardTotal) cardTotal.addEventListener("click", () => showSubDashboard("Total"));
+    if (cardReported) cardReported.addEventListener("click", () => showSubDashboard("Reported"));
+    if (cardInProgress) cardInProgress.addEventListener("click", () => showSubDashboard("In Progress"));
+    if (cardResolved) cardResolved.addEventListener("click", () => showSubDashboard("Resolved"));
+
+    if (btnBackToDashboard) {
+        btnBackToDashboard.addEventListener("click", (e) => {
+            e.preventDefault();
+            subDashboardView.classList.add("hidden");
+            mainDashboardView.classList.remove("hidden");
         });
     }
 });
