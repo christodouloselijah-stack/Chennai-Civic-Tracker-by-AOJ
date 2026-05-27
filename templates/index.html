@@ -55,15 +55,15 @@
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
         
         <!-- Top Bar -->
-        <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10">
+        <header class="bg-white shadow-sm px-4 md:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10">
             <h2 class="text-xl font-semibold text-gray-800">Overview</h2>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                 <label for="constituency-select" class="sr-only">Select Constituency</label>
-                <select id="constituency-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white min-w-[250px]">
+                <select id="constituency-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white w-full sm:min-w-[250px]">
                     <option value="all">Overall Chennai (All Constituencies)</option>
                 </select>
-                <input type="month" id="month-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white">
-                <button id="download-btn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg shadow-md transition flex items-center gap-2">
+                <input type="month" id="month-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white w-full sm:w-auto">
+                <button id="download-btn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg shadow-md transition flex items-center justify-center gap-2 w-full sm:w-auto">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export PDF
                 </button>
@@ -71,7 +71,7 @@
         </header>
 
         <!-- Scrollable Content Area -->
-        <div class="flex-1 overflow-y-auto p-6 lg:p-8">
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-6">
             
             <div id="dashboard-content" class="hidden">
                 <!-- Metrics Grid -->
@@ -194,6 +194,22 @@
 
         </div>
     </main>
-    <script src="/static/app.js?v=106"></script>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-indigo-900 text-white flex justify-around items-center h-16 border-t border-indigo-800 z-50 shadow-2xl">
+        <a href="#" id="mobile-nav-dashboard" class="flex flex-col items-center justify-center w-full h-full text-indigo-300 focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-[10px] font-medium mt-1">Dashboard</span>
+        </a>
+        <a href="#" id="mobile-nav-reports" class="flex flex-col items-center justify-center w-full h-full text-indigo-300 opacity-60 focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span class="text-[10px] font-medium mt-1">Reports</span>
+        </a>
+        <a href="#" id="mobile-nav-teams" class="flex flex-col items-center justify-center w-full h-full text-indigo-300 opacity-60 focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <span class="text-[10px] font-medium mt-1">Teams</span>
+        </a>
+    </nav>
+    <script src="/static/app.js?v=107"></script>
 </body>
 </html>

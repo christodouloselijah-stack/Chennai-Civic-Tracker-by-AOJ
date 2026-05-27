@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const navReports = document.getElementById("nav-reports");
     const navTeams = document.getElementById("nav-teams");
 
+    const mobileNavDashboard = document.getElementById("mobile-nav-dashboard");
+    const mobileNavReports = document.getElementById("mobile-nav-reports");
+    const mobileNavTeams = document.getElementById("mobile-nav-teams");
+
     const reportsContent = document.getElementById("reports-content");
     const teamsContent = document.getElementById("teams-content");
     const reportsGrid = document.getElementById("reports-grid");
@@ -269,10 +273,18 @@ document.addEventListener("DOMContentLoaded", () => {
     function switchTab(tab) {
         currentTab = tab;
         
-        // Update tab styling
+        // Update desktop tab styling
         [navDashboard, navReports, navTeams].forEach(el => {
             el.classList.remove("bg-indigo-800", "opacity-100");
             el.classList.add("opacity-75", "hover:bg-indigo-800");
+        });
+
+        // Update mobile tab styling
+        [mobileNavDashboard, mobileNavReports, mobileNavTeams].forEach(el => {
+            if (el) {
+                el.classList.remove("opacity-100");
+                el.classList.add("opacity-60");
+            }
         });
 
         // Hide all views
@@ -288,16 +300,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (tab === "dashboard") {
             navDashboard.classList.add("bg-indigo-800", "opacity-100");
+            if (mobileNavDashboard) mobileNavDashboard.classList.add("opacity-100");
+            if (mobileNavDashboard) mobileNavDashboard.classList.remove("opacity-60");
             headerTitle.textContent = "Overview";
             loadData();
         } else if (tab === "reports") {
             navReports.classList.add("bg-indigo-800", "opacity-100");
+            if (mobileNavReports) mobileNavReports.classList.add("opacity-100");
+            if (mobileNavReports) mobileNavReports.classList.remove("opacity-60");
             headerTitle.textContent = "Reports Center";
             constituencySelect.classList.add("hidden");
             reportsContent.classList.remove("hidden");
             loadReports();
         } else if (tab === "teams") {
             navTeams.classList.add("bg-indigo-800", "opacity-100");
+            if (mobileNavTeams) mobileNavTeams.classList.add("opacity-100");
+            if (mobileNavTeams) mobileNavTeams.classList.remove("opacity-60");
             headerTitle.textContent = "Municipal Teams";
             constituencySelect.classList.add("hidden");
             monthSelect.classList.add("hidden");
@@ -309,6 +327,10 @@ document.addEventListener("DOMContentLoaded", () => {
     navDashboard.addEventListener("click", (e) => { e.preventDefault(); switchTab("dashboard"); });
     navReports.addEventListener("click", (e) => { e.preventDefault(); switchTab("reports"); });
     navTeams.addEventListener("click", (e) => { e.preventDefault(); switchTab("teams"); });
+
+    if (mobileNavDashboard) mobileNavDashboard.addEventListener("click", (e) => { e.preventDefault(); switchTab("dashboard"); });
+    if (mobileNavReports) mobileNavReports.addEventListener("click", (e) => { e.preventDefault(); switchTab("reports"); });
+    if (mobileNavTeams) mobileNavTeams.addEventListener("click", (e) => { e.preventDefault(); switchTab("teams"); });
 
     // Reports Center logic
     function loadReports() {
