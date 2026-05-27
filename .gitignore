@@ -8,7 +8,7 @@ ENV/
 env/
 
 # Databases
-tracker.db
+# tracker.db
 *.db
 *.sqlite3
 
