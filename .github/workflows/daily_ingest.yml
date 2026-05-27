@@ -1,0 +1,41 @@
+name: Daily Civic News Ingestion
+
+on:
+  schedule:
+    # 00:30 UTC is 06:00 AM IST (India Standard Time)
+    - cron: '30 0 * * *'
+  workflow_dispatch: # Allows you to trigger this manually from the GitHub website
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-node-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Ingestion Script
+      run: |
+        python -c "from ingestion_real_news import ingest_real_data; ingest_real_data()"
+
+    - name: Commit and Push Database Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add tracker.db
+        # Only commit if there are changes to avoid workflow errors
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update civic tracker database [skip ci]" && git push)
