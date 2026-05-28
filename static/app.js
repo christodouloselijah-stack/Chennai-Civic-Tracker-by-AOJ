@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let statusChartInstance = null;
     let currentTab = "dashboard";
     let currentUpdatesData = [];
+    let hasAttemptedFallback = false;
 
     // Clickable Cards & Sub-Dashboard
     const cardTotal = document.getElementById("card-total");
@@ -380,6 +381,25 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch(updatesUrl)
             .then(response => response.json())
             .then(fetchedData => {
+                // Fallback to the latest month containing data if the current selection has no data on initial load
+                if (fetchedData.length === 0 && !hasAttemptedFallback && monthVal) {
+                    hasAttemptedFallback = true;
+                    fetch(`/api/updates/all`)
+                        .then(r => r.json())
+                        .then(allData => {
+                            if (allData && allData.length > 0) {
+                                const latestDate = allData[0].date;
+                                if (latestDate) {
+                                    const parts = latestDate.split("-");
+                                    monthSelect.value = `${parts[0]}-${parts[1]}`;
+                                    loadData();
+                                }
+                            }
+                        })
+                        .catch(e => console.error("Fallback error:", e));
+                    return;
+                }
+
                 let filteredData = fetchedData;
                 if (checkboxSelectAll && !checkboxSelectAll.checked) {
                     if (selectedConstituencyIds.includes("none")) {
