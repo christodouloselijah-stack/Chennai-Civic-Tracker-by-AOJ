@@ -1,6 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
     // DOM Elements
-    const constituencySelect = document.getElementById("constituency-select");
+    const dropdownBtnSelect = document.getElementById("dropdown-btn-select");
+    const dropdownSelectedText = document.getElementById("dropdown-selected-text");
+    const dropdownOptionsMenu = document.getElementById("dropdown-options-menu");
+    const checkboxSelectAll = document.getElementById("checkbox-select-all");
+    const checkboxOptionsList = document.getElementById("checkbox-options-list");
+
     const updatesFeed = document.getElementById("updates-feed");
     const downloadBtn = document.getElementById("download-btn");
     const dashboardContent = document.getElementById("dashboard-content");
@@ -112,18 +117,81 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     ];
 
+    // Toggle dropdown open/close
+    dropdownBtnSelect.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdownOptionsMenu.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+        const container = document.getElementById("constituency-dropdown-container");
+        if (container && !container.contains(e.target)) {
+            dropdownOptionsMenu.classList.add("hidden");
+        }
+    });
+
+    // Update the visual selection summary text
+    function updateSelectedText() {
+        const checkedBoxes = document.querySelectorAll(".constituency-checkbox:checked");
+        if (checkboxSelectAll.checked) {
+            dropdownSelectedText.textContent = "Overall Chennai (All)";
+            selectedConstituencyIds = []; // Empty list represents overall aggregate
+        } else if (checkedBoxes.length === 0) {
+            dropdownSelectedText.textContent = "No Constituency Selected";
+            selectedConstituencyIds = ["none"]; 
+        } else if (checkedBoxes.length === allConstituencies.length) {
+            dropdownSelectedText.textContent = "Overall Chennai (All)";
+            checkboxSelectAll.checked = true;
+            selectedConstituencyIds = [];
+        } else if (checkedBoxes.length === 1) {
+            dropdownSelectedText.textContent = checkedBoxes[0].nextElementSibling.textContent;
+            selectedConstituencyIds = [checkedBoxes[0].value];
+        } else {
+            dropdownSelectedText.textContent = `${checkedBoxes.length} Selected`;
+            selectedConstituencyIds = Array.from(checkedBoxes).map(cb => cb.value);
+        }
+    }
+
+    // Toggle All Checkboxes
+    checkboxSelectAll.addEventListener("change", () => {
+        const checkBoxes = document.querySelectorAll(".constituency-checkbox");
+        checkBoxes.forEach(cb => {
+            cb.checked = checkboxSelectAll.checked;
+        });
+        updateSelectedText();
+        loadData();
+    });
+
     // Fetch constituencies for dropdown
     fetch("/api/constituencies")
         .then(response => response.json())
         .then(data => {
-            constituencySelect.innerHTML = '<option value="all">Overall Chennai (All Constituencies)</option>';
+            allConstituencies = data;
+            checkboxOptionsList.innerHTML = "";
+            
             data.forEach(c => {
-                const option = document.createElement("option");
-                option.value = c.id;
-                option.textContent = c.name;
-                constituencySelect.appendChild(option);
+                const label = document.createElement("label");
+                label.className = "flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm font-medium text-gray-700";
+                label.innerHTML = `
+                    <input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 constituency-checkbox" value="${c.id}" checked>
+                    <span>${c.name}</span>
+                `;
+                checkboxOptionsList.appendChild(label);
             });
-            // Initial load of dashboard
+
+            // Bind individual checkbox changes
+            document.querySelectorAll(".constituency-checkbox").forEach(cb => {
+                cb.addEventListener("change", () => {
+                    if (!cb.checked) {
+                        checkboxSelectAll.checked = false;
+                    }
+                    updateSelectedText();
+                    loadData();
+                });
+            });
+
+            updateSelectedText();
             loadData();
         })
         .catch(err => {
@@ -133,7 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dashboard Data Loading
     function loadData() {
-        const constituencyId = constituencySelect.value || "all";
         const monthVal = monthSelect.value;
         updatesFeed.innerHTML = "";
         updatesOfTheDayGrid.innerHTML = "";
@@ -143,56 +210,56 @@ document.addEventListener("DOMContentLoaded", () => {
         dashboardContent.classList.remove("hidden");
         downloadBtn.classList.remove("hidden");
         
-        let statsUrl = "";
-        let updatesUrl = "";
-        
-        if (constituencyId === "all") {
-            statsUrl = `/api/stats/all_aggregate`;
-            updatesUrl = `/api/updates/all`;
-            
-            downloadBtn.onclick = () => {
-                let url = `/api/reports/all_aggregate/download`;
-                if(monthVal) url += `?month=${monthVal}`;
-                window.location.href = url;
-            };
-        } else {
-            statsUrl = `/api/stats/${constituencyId}`;
-            updatesUrl = `/api/updates/${constituencyId}`;
-            
-            downloadBtn.onclick = () => {
-                let url = `/api/reports/${constituencyId}/download`;
-                if(monthVal) url += `?month=${monthVal}`;
-                window.location.href = url;
-            };
-        }
-
+        let updatesUrl = `/api/updates/all`;
         if (monthVal) {
-            statsUrl += (statsUrl.includes("?") ? "&" : "?") + `month=${monthVal}`;
-            updatesUrl += (updatesUrl.includes("?") ? "&" : "?") + `month=${monthVal}`;
+            updatesUrl += `?month=${monthVal}`;
         }
 
-        // Fetch Stats
-        fetch(statsUrl)
-            .then(res => res.json())
-            .then(stats => {
-                statTotal.textContent = stats.total;
-                statReported.textContent = stats.reported;
-                statInProgress.textContent = stats.in_progress;
-                statResolved.textContent = stats.resolved;
-
-                updateChart(stats.resolved, stats.in_progress, stats.reported);
-            })
-            .catch(err => console.error("Error loading stats:", err));
+        // Configure Export button
+        downloadBtn.onclick = () => {
+            const checkedBoxes = document.querySelectorAll(".constituency-checkbox:checked");
+            let url = `/api/reports/all_aggregate/download`;
+            if (checkedBoxes.length === 1) {
+                url = `/api/reports/${checkedBoxes[0].value}/download`;
+            }
+            if (monthVal) url += (url.includes("?") ? "&" : "?") + `month=${monthVal}`;
+            window.location.href = url;
+        };
 
         fetch(updatesUrl)
             .then(response => response.json())
-            .then(data => {
-                currentUpdatesData = data;
+            .then(fetchedData => {
+                let filteredData = fetchedData;
+                if (!checkboxSelectAll.checked) {
+                    if (selectedConstituencyIds.includes("none")) {
+                        filteredData = [];
+                    } else {
+                        const stringIds = selectedConstituencyIds.map(String);
+                        filteredData = fetchedData.filter(u => stringIds.includes(String(u.constituency_id)));
+                    }
+                }
+
+                currentUpdatesData = filteredData;
                 mainDashboardView.classList.remove("hidden");
                 subDashboardView.classList.add("hidden");
 
+                // Compute stats dynamically
+                const total = filteredData.length;
+                const resolved = filteredData.filter(u => u.status === "Resolved").length;
+                const in_progress = filteredData.filter(u => u.status === "In Progress").length;
+                const reported = filteredData.filter(u => u.status === "Reported").length;
+
+                statTotal.textContent = total;
+                statReported.textContent = reported;
+                statInProgress.textContent = in_progress;
+                statResolved.textContent = resolved;
+
+                updateChart(resolved, in_progress, reported);
+
+                const data = filteredData;
+
                 if (data.length === 0) {
-                    updatesFeed.innerHTML = "<p class='col-span-full text-gray-500 text-center py-8'>No updates available for the selected month.</p>";
+                    updatesFeed.innerHTML = "<p class='col-span-full text-gray-500 text-center py-8'>No updates available for the selection.</p>";
                     return;
                 }
                 
@@ -280,7 +347,8 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(err => console.error("Error loading updates feed:", err));
     }
 
-    constituencySelect.addEventListener("change", loadData);
+    const dropdownContainer = document.getElementById("constituency-dropdown-container");
+
     monthSelect.addEventListener("change", () => {
         if (currentTab === "dashboard") {
             loadData();
@@ -314,7 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
         teamsContent.classList.add("hidden");
 
         // Header view default hides
-        constituencySelect.classList.remove("hidden");
+        if (dropdownContainer) dropdownContainer.classList.remove("hidden");
         monthSelect.classList.remove("hidden");
         downloadBtn.classList.add("hidden");
 
@@ -329,7 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (mobileNavReports) mobileNavReports.classList.add("opacity-100");
             if (mobileNavReports) mobileNavReports.classList.remove("opacity-60");
             headerTitle.textContent = "Reports Center";
-            constituencySelect.classList.add("hidden");
+            if (dropdownContainer) dropdownContainer.classList.add("hidden");
             reportsContent.classList.remove("hidden");
             loadReports();
         } else if (tab === "teams") {
@@ -337,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (mobileNavTeams) mobileNavTeams.classList.add("opacity-100");
             if (mobileNavTeams) mobileNavTeams.classList.remove("opacity-60");
             headerTitle.textContent = "Municipal Teams";
-            constituencySelect.classList.add("hidden");
+            if (dropdownContainer) dropdownContainer.classList.add("hidden");
             monthSelect.classList.add("hidden");
             teamsContent.classList.remove("hidden");
             loadTeams();
@@ -413,7 +481,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll(".btn-view-dashboard").forEach(btn => {
                     btn.addEventListener("click", (e) => {
                         const id = e.currentTarget.getAttribute("data-id");
-                        constituencySelect.value = id;
+                        checkboxSelectAll.checked = false;
+                        document.querySelectorAll(".constituency-checkbox").forEach(cb => {
+                            cb.checked = (String(cb.value) === String(id));
+                        });
+                        updateSelectedText();
                         switchTab("dashboard");
                     });
                 });
@@ -507,7 +579,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".btn-view-member-zone").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 const constituencyId = e.currentTarget.getAttribute("data-constituency-id");
-                constituencySelect.value = constituencyId;
+                checkboxSelectAll.checked = false;
+                document.querySelectorAll(".constituency-checkbox").forEach(cb => {
+                    cb.checked = (String(cb.value) === String(constituencyId));
+                });
+                updateSelectedText();
                 switchTab("dashboard");
             });
         });
