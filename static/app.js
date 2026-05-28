@@ -482,10 +482,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     updatesOfTheDaySection.classList.remove("hidden");
                     todayUpdates.slice(0, 3).forEach(update => {
                         const card = document.createElement("a");
-                        card.href = update.article_url || "#";
-                        card.target = "_blank";
-                        card.rel = "noopener noreferrer";
-                        card.className = "block bg-white rounded-xl shadow-md overflow-hidden border-2 border-indigo-100 transition duration-300 hover:shadow-lg hover:-translate-y-1 relative cursor-pointer";
+                        if (update.article_url) {
+                            card.href = update.article_url;
+                            card.target = "_blank";
+                            card.rel = "noopener noreferrer";
+                            card.className = "block bg-white rounded-xl shadow-md overflow-hidden border-2 border-indigo-100 transition duration-300 hover:shadow-lg hover:-translate-y-1 relative cursor-pointer";
+                        } else {
+                            card.href = "javascript:void(0);";
+                            card.className = "block bg-white rounded-xl shadow-md overflow-hidden border-2 border-indigo-50 relative cursor-default";
+                        }
                         
                         let statusColor = "bg-gray-100 text-gray-800";
                         if (update.status === "Resolved") statusColor = "bg-green-100 text-green-800";
@@ -517,10 +522,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Populate regular feed
                 data.forEach(update => {
                     const card = document.createElement("a");
-                    card.href = update.article_url || "#";
-                    card.target = "_blank";
-                    card.rel = "noopener noreferrer";
-                    card.className = "block bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 transition duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer";
+                    if (update.article_url) {
+                        card.href = update.article_url;
+                        card.target = "_blank";
+                        card.rel = "noopener noreferrer";
+                        card.className = "block bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 transition duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer";
+                    } else {
+                        card.href = "javascript:void(0);";
+                        card.className = "block bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 cursor-default";
+                    }
                     
                     let statusColor = "bg-gray-100 text-gray-800";
                     if (update.status === "Resolved") statusColor = "bg-green-100 text-green-800";
@@ -970,10 +980,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         filtered.forEach(update => {
             const card = document.createElement("a");
-            card.href = update.article_url || "#";
-            card.target = "_blank";
-            card.rel = "noopener noreferrer";
-            card.className = "block bg-gray-50 hover:bg-indigo-50 border border-gray-100 rounded-xl overflow-hidden p-4 transition hover:shadow-sm";
+            if (update.article_url) {
+                card.href = update.article_url;
+                card.target = "_blank";
+                card.rel = "noopener noreferrer";
+                card.className = "block bg-gray-50 hover:bg-indigo-50 border border-gray-100 rounded-xl overflow-hidden p-4 transition hover:shadow-sm";
+            } else {
+                card.href = "javascript:void(0);";
+                card.className = "block bg-gray-50 border border-gray-100 rounded-xl overflow-hidden p-4 cursor-default";
+            }
             
             let statusBadgeColor = "bg-gray-100 text-gray-800";
             if (update.status === "Resolved") statusBadgeColor = "bg-green-100 text-green-800";
