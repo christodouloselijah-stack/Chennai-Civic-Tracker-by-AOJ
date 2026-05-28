@@ -118,21 +118,24 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
 
     // Toggle dropdown open/close
-    dropdownBtnSelect.addEventListener("click", (e) => {
-        e.stopPropagation();
-        dropdownOptionsMenu.classList.toggle("hidden");
-    });
+    if (dropdownBtnSelect) {
+        dropdownBtnSelect.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (dropdownOptionsMenu) dropdownOptionsMenu.classList.toggle("hidden");
+        });
+    }
 
     // Close dropdown when clicking outside
     document.addEventListener("click", (e) => {
         const container = document.getElementById("constituency-dropdown-container");
         if (container && !container.contains(e.target)) {
-            dropdownOptionsMenu.classList.add("hidden");
+            if (dropdownOptionsMenu) dropdownOptionsMenu.classList.add("hidden");
         }
     });
 
     // Update the visual selection summary text
     function updateSelectedText() {
+        if (!dropdownSelectedText || !checkboxSelectAll) return;
         const checkedBoxes = document.querySelectorAll(".constituency-checkbox:checked");
         if (checkboxSelectAll.checked) {
             dropdownSelectedText.textContent = "Overall Chennai (All)";
@@ -154,42 +157,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Toggle All Checkboxes
-    checkboxSelectAll.addEventListener("change", () => {
-        const checkBoxes = document.querySelectorAll(".constituency-checkbox");
-        checkBoxes.forEach(cb => {
-            cb.checked = checkboxSelectAll.checked;
+    if (checkboxSelectAll) {
+        checkboxSelectAll.addEventListener("change", () => {
+            const checkBoxes = document.querySelectorAll(".constituency-checkbox");
+            checkBoxes.forEach(cb => {
+                cb.checked = checkboxSelectAll.checked;
+            });
+            updateSelectedText();
+            loadData();
         });
-        updateSelectedText();
-        loadData();
-    });
-
-    // Fetch constituencies for dropdown
+    }    // Fetch constituencies for dropdown
     fetch("/api/constituencies")
         .then(response => response.json())
         .then(data => {
             allConstituencies = data;
-            checkboxOptionsList.innerHTML = "";
             
-            data.forEach(c => {
-                const label = document.createElement("label");
-                label.className = "flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm font-medium text-gray-700";
-                label.innerHTML = `
-                    <input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 constituency-checkbox" value="${c.id}" checked>
-                    <span>${c.name}</span>
-                `;
-                checkboxOptionsList.appendChild(label);
-            });
-
-            // Bind individual checkbox changes
-            document.querySelectorAll(".constituency-checkbox").forEach(cb => {
-                cb.addEventListener("change", () => {
-                    if (!cb.checked) {
-                        checkboxSelectAll.checked = false;
-                    }
-                    updateSelectedText();
-                    loadData();
+            if (checkboxOptionsList) {
+                checkboxOptionsList.innerHTML = "";
+                data.forEach(c => {
+                    const label = document.createElement("label");
+                    label.className = "flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm font-medium text-gray-700";
+                    label.innerHTML = `
+                        <input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 constituency-checkbox" value="${c.id}" checked>
+                        <span>${c.name}</span>
+                    `;
+                    checkboxOptionsList.appendChild(label);
                 });
-            });
+
+                // Bind individual checkbox changes
+                document.querySelectorAll(".constituency-checkbox").forEach(cb => {
+                    cb.addEventListener("change", () => {
+                        if (checkboxSelectAll && !cb.checked) {
+                            checkboxSelectAll.checked = false;
+                        }
+                        updateSelectedText();
+                        loadData();
+                    });
+                });
+            }
 
             updateSelectedText();
             loadData();
@@ -230,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(response => response.json())
             .then(fetchedData => {
                 let filteredData = fetchedData;
-                if (!checkboxSelectAll.checked) {
+                if (checkboxSelectAll && !checkboxSelectAll.checked) {
                     if (selectedConstituencyIds.includes("none")) {
                         filteredData = [];
                     } else {
@@ -481,7 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll(".btn-view-dashboard").forEach(btn => {
                     btn.addEventListener("click", (e) => {
                         const id = e.currentTarget.getAttribute("data-id");
-                        checkboxSelectAll.checked = false;
+                        if (checkboxSelectAll) checkboxSelectAll.checked = false;
                         document.querySelectorAll(".constituency-checkbox").forEach(cb => {
                             cb.checked = (String(cb.value) === String(id));
                         });
@@ -579,7 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".btn-view-member-zone").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 const constituencyId = e.currentTarget.getAttribute("data-constituency-id");
-                checkboxSelectAll.checked = false;
+                if (checkboxSelectAll) checkboxSelectAll.checked = false;
                 document.querySelectorAll(".constituency-checkbox").forEach(cb => {
                     cb.checked = (String(cb.value) === String(constituencyId));
                 });
