@@ -23,3 +23,14 @@ class CivicUpdate(Base):
     article_url = Column(String)
 
     constituency = relationship("Constituency", back_populates="updates")
+
+class Feedback(Base):
+    __tablename__ = "feedback_submissions"
+    id = Column(Integer, primary_key=True, index=True)
+    request_type = Column(String, index=True)
+    title = Column(String)
+    area = Column(String)
+    description = Column(String)
+    source_url = Column(String)
+    submitter = Column(String)
+    date = Column(Date)

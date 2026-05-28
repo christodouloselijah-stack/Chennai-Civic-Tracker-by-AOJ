@@ -20,13 +20,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const navDashboard = document.getElementById("nav-dashboard");
     const navReports = document.getElementById("nav-reports");
     const navTeams = document.getElementById("nav-teams");
+    const navFeedback = document.getElementById("nav-feedback");
 
     const mobileNavDashboard = document.getElementById("mobile-nav-dashboard");
     const mobileNavReports = document.getElementById("mobile-nav-reports");
     const mobileNavTeams = document.getElementById("mobile-nav-teams");
+    const mobileNavFeedback = document.getElementById("mobile-nav-feedback");
 
     const reportsContent = document.getElementById("reports-content");
     const teamsContent = document.getElementById("teams-content");
+    const feedbackContent = document.getElementById("feedback-content");
     const reportsGrid = document.getElementById("reports-grid");
     const teamsGrid = document.getElementById("teams-grid");
     const teamSearch = document.getElementById("team-search");
@@ -566,13 +569,15 @@ document.addEventListener("DOMContentLoaded", () => {
         currentTab = tab;
         
         // Update desktop tab styling
-        [navDashboard, navReports, navTeams].forEach(el => {
-            el.classList.remove("bg-indigo-800", "opacity-100");
-            el.classList.add("opacity-75", "hover:bg-indigo-800");
+        [navDashboard, navReports, navTeams, navFeedback].forEach(el => {
+            if (el) {
+                el.classList.remove("bg-indigo-800", "opacity-100");
+                el.classList.add("opacity-75", "hover:bg-indigo-800");
+            }
         });
 
         // Update mobile tab styling
-        [mobileNavDashboard, mobileNavReports, mobileNavTeams].forEach(el => {
+        [mobileNavDashboard, mobileNavReports, mobileNavTeams, mobileNavFeedback].forEach(el => {
             if (el) {
                 el.classList.remove("opacity-100");
                 el.classList.add("opacity-60");
@@ -584,6 +589,7 @@ document.addEventListener("DOMContentLoaded", () => {
         emptyState.classList.add("hidden");
         reportsContent.classList.add("hidden");
         teamsContent.classList.add("hidden");
+        if (feedbackContent) feedbackContent.classList.add("hidden");
 
         // Header view default hides
         if (dropdownContainer) dropdownContainer.classList.remove("hidden");
@@ -613,16 +619,27 @@ document.addEventListener("DOMContentLoaded", () => {
             monthSelect.classList.add("hidden");
             teamsContent.classList.remove("hidden");
             loadTeams();
+        } else if (tab === "feedback") {
+            if (navFeedback) navFeedback.classList.add("bg-indigo-800", "opacity-100");
+            if (mobileNavFeedback) mobileNavFeedback.classList.add("opacity-100");
+            if (mobileNavFeedback) mobileNavFeedback.classList.remove("opacity-60");
+            headerTitle.textContent = "Collaboration Portal";
+            if (dropdownContainer) dropdownContainer.classList.add("hidden");
+            monthSelect.classList.add("hidden");
+            if (feedbackContent) feedbackContent.classList.remove("hidden");
+            loadFeedbackLog();
         }
     }
 
     navDashboard.addEventListener("click", (e) => { e.preventDefault(); switchTab("dashboard"); });
     navReports.addEventListener("click", (e) => { e.preventDefault(); switchTab("reports"); });
     navTeams.addEventListener("click", (e) => { e.preventDefault(); switchTab("teams"); });
+    if (navFeedback) navFeedback.addEventListener("click", (e) => { e.preventDefault(); switchTab("feedback"); });
 
     if (mobileNavDashboard) mobileNavDashboard.addEventListener("click", (e) => { e.preventDefault(); switchTab("dashboard"); });
     if (mobileNavReports) mobileNavReports.addEventListener("click", (e) => { e.preventDefault(); switchTab("reports"); });
     if (mobileNavTeams) mobileNavTeams.addEventListener("click", (e) => { e.preventDefault(); switchTab("teams"); });
+    if (mobileNavFeedback) mobileNavFeedback.addEventListener("click", (e) => { e.preventDefault(); switchTab("feedback"); });
 
     // Reports Center logic
     function loadReports() {
@@ -1000,4 +1017,145 @@ document.addEventListener("DOMContentLoaded", () => {
             mainDashboardView.classList.remove("hidden");
         });
     }
+
+    // ==========================================
+    // Team Collaboration Portal (Feedback Tab)
+    // ==========================================
+    const localFeedbackForm = document.getElementById("local-feedback-form");
+    const feedbackLogBody = document.getElementById("feedback-log-body");
+    const googleFormUrlInput = document.getElementById("google-form-url-input");
+    const saveGoogleFormUrlBtn = document.getElementById("save-google-form-url");
+    const launchGoogleFormBtn = document.getElementById("launch-google-form-btn");
+    const configStatus = document.getElementById("config-status");
+
+    // Load saved Google Form link on startup
+    function initGoogleFormLink() {
+        const savedUrl = localStorage.getItem("aoj_google_form_url");
+        if (savedUrl) {
+            if (googleFormUrlInput) googleFormUrlInput.value = savedUrl;
+            if (launchGoogleFormBtn) launchGoogleFormBtn.href = savedUrl;
+        }
+    }
+
+    if (saveGoogleFormUrlBtn) {
+        saveGoogleFormUrlBtn.addEventListener("click", () => {
+            const url = googleFormUrlInput ? googleFormUrlInput.value.trim() : "";
+            if (url) {
+                localStorage.setItem("aoj_google_form_url", url);
+                if (launchGoogleFormBtn) launchGoogleFormBtn.href = url;
+                if (configStatus) {
+                    configStatus.classList.remove("hidden");
+                    setTimeout(() => {
+                        configStatus.classList.add("hidden");
+                    }, 3000);
+                }
+            } else {
+                localStorage.removeItem("aoj_google_form_url");
+                if (launchGoogleFormBtn) launchGoogleFormBtn.href = "https://forms.google.com";
+            }
+        });
+    }
+
+    // Load submissions from API
+    function loadFeedbackLog() {
+        if (!feedbackLogBody) return;
+        
+        fetch("/api/feedback")
+            .then(res => res.json())
+            .then(data => {
+                feedbackLogBody.innerHTML = "";
+                if (data.length === 0) {
+                    feedbackLogBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-6 text-center text-gray-500 text-xs">No feedback submitted yet. Be the first to add input!</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                data.forEach(item => {
+                    let badgeColor = "bg-gray-100 text-gray-800";
+                    if (item.request_type === "Civic Input") badgeColor = "bg-indigo-100 text-indigo-800";
+                    else if (item.request_type === "Bug Report") badgeColor = "bg-red-100 text-red-800";
+                    else if (item.request_type === "Feedback") badgeColor = "bg-green-100 text-green-800";
+                    else if (item.request_type === "Future Requirement") badgeColor = "bg-yellow-100 text-yellow-800";
+
+                    const areaText = item.area ? item.area : '<span class="text-gray-400 font-normal">N/A</span>';
+                    const linkButton = item.source_url 
+                        ? `<a href="${item.source_url}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline flex items-center gap-0.5 mt-1 font-semibold text-[11px]">
+                             View Link
+                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                           </a>` 
+                        : "";
+
+                    const tr = document.createElement("tr");
+                    tr.className = "border-b border-gray-50 hover:bg-gray-50 transition";
+                    tr.innerHTML = `
+                        <td class="py-3.5 px-2">
+                            <span class="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full ${badgeColor}">${item.request_type}</span>
+                        </td>
+                        <td class="py-3.5 px-2">
+                            <p class="font-bold text-gray-800 text-xs">${item.title}</p>
+                            <p class="text-[10px] text-gray-400 mt-0.5 font-medium">Submitted by: <span class="text-gray-600 font-semibold">${item.submitter}</span></p>
+                        </td>
+                        <td class="py-3.5 px-2 text-xs font-semibold text-gray-600">${areaText}</td>
+                        <td class="py-3.5 px-2">
+                            <p class="text-xs text-gray-500 max-w-xs break-words">${item.description}</p>
+                            ${linkButton}
+                        </td>
+                        <td class="py-3.5 px-2 text-right text-xs text-gray-400 font-medium">${item.date}</td>
+                    `;
+                    feedbackLogBody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                console.error("Error loading feedback log:", err);
+                feedbackLogBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-6 text-center text-red-500 text-xs">Failed to load submissions log.</td>
+                    </tr>
+                `;
+            });
+    }
+
+    // Submit Local Form
+    if (localFeedbackForm) {
+        localFeedbackForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                request_type: document.getElementById("fb-type").value,
+                title: document.getElementById("fb-title").value.trim(),
+                area: document.getElementById("fb-area").value.trim() || null,
+                submitter: document.getElementById("fb-submitter").value.trim(),
+                source_url: document.getElementById("fb-source-url").value.trim() || null,
+                description: document.getElementById("fb-description").value.trim()
+            };
+
+            fetch("/api/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === "success") {
+                    document.getElementById("fb-title").value = "";
+                    document.getElementById("fb-area").value = "";
+                    document.getElementById("fb-source-url").value = "";
+                    document.getElementById("fb-description").value = "";
+                    loadFeedbackLog();
+                } else {
+                    alert("Failed to submit feedback. Please try again.");
+                }
+            })
+            .catch(err => {
+                console.error("Error submitting feedback:", err);
+                alert("Error submitting feedback. Check your backend logs.");
+            });
+        });
+    }
+
+    // Initialize saved URL on load
+    initGoogleFormLink();
 });

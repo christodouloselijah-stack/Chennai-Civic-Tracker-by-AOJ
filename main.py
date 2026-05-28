@@ -7,9 +7,11 @@ from sqlalchemy import func
 import os
 
 from database import engine, Base, SessionLocal
-from models import Constituency, CivicUpdate
+from models import Constituency, CivicUpdate, Feedback
 from scheduler import start_scheduler
 from pdf_generator import generate_pdf_report
+from pydantic import BaseModel
+from datetime import date as datetime_date
 
 # Create tables if not exist
 Base.metadata.create_all(bind=engine)
@@ -174,3 +176,31 @@ def download_report(constituency_id: int, month: Optional[str] = None, db: Sessi
     }
     
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
+
+class FeedbackCreate(BaseModel):
+    request_type: str
+    title: str
+    area: Optional[str] = None
+    description: str
+    source_url: Optional[str] = None
+    submitter: Optional[str] = None
+
+@app.post("/api/feedback")
+def create_feedback(feedback_in: FeedbackCreate, db: Session = Depends(get_db)):
+    db_feedback = Feedback(
+        request_type=feedback_in.request_type,
+        title=feedback_in.title,
+        area=feedback_in.area,
+        description=feedback_in.description,
+        source_url=feedback_in.source_url,
+        submitter=feedback_in.submitter,
+        date=datetime_date.today()
+    )
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    return {"status": "success", "id": db_feedback.id}
+
+@app.get("/api/feedback")
+def get_feedback(db: Session = Depends(get_db)):
+    return db.query(Feedback).order_by(Feedback.id.desc()).all()
