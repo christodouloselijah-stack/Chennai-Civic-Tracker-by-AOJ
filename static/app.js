@@ -493,7 +493,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         card.innerHTML = `
                             <div class="h-44 overflow-hidden relative">
-                                <img src="${update.image_url}" alt="Civic Update" class="w-full h-full object-cover transition duration-500 hover:scale-105" onerror="this.src='https://picsum.photos/400/300?random=${update.id}'">
+                                <img src="${update.image_url}" referrerpolicy="no-referrer" alt="Civic Update" class="w-full h-full object-cover transition duration-500 hover:scale-105" onerror="this.src='https://picsum.photos/400/300?random=${update.id}'">
                                 <div class="absolute top-3 right-3 flex flex-col items-end gap-1">
                                     <span class="px-2.5 py-1 text-xs font-bold rounded-md ${statusColor} shadow-sm backdrop-blur-md bg-opacity-90">${update.status}</span>
                                 </div>
@@ -523,12 +523,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (update.status === "Resolved") statusColor = "bg-green-100 text-green-800";
                     else if (update.status === "In Progress") statusColor = "bg-yellow-100 text-yellow-800";
                     else if (update.status === "Reported") statusColor = "bg-red-100 text-red-800";
-
+ 
                     let sourceLabel = update.source ? `<span class="text-indigo-600 font-semibold text-[10px] bg-indigo-50 px-2 py-0.5 rounded-full">${update.source}</span>` : "";
-
+ 
                     card.innerHTML = `
                         <div class="h-40 overflow-hidden relative">
-                            <img src="${update.image_url}" alt="Civic Update" class="w-full h-full object-cover transition duration-500 hover:scale-105" onerror="this.src='https://picsum.photos/400/300?random=${update.id}'">
+                            <img src="${update.image_url}" referrerpolicy="no-referrer" alt="Civic Update" class="w-full h-full object-cover transition duration-500 hover:scale-105" onerror="this.src='https://picsum.photos/400/300?random=${update.id}'">
                             <div class="absolute top-3 right-3">
                                 <span class="px-2.5 py-1 text-xs font-bold rounded-md ${statusColor} shadow-sm backdrop-blur-md bg-opacity-90">${update.status}</span>
                             </div>
@@ -968,7 +968,7 @@ document.addEventListener("DOMContentLoaded", () => {
             card.innerHTML = `
                 <div class="flex gap-4">
                     <div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 border border-gray-100">
-                        <img src="${update.image_url}" alt="Thumbnail" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/150/150?random=${update.id}'">
+                        <img src="${update.image_url}" referrerpolicy="no-referrer" alt="Thumbnail" class="w-full h-full object-cover" onerror="this.src='https://picsum.photos/150/150?random=${update.id}'">
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2 mb-1.5">
