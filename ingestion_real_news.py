@@ -8,7 +8,31 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
 from models import Constituency, CivicUpdate
-from googlenewsdecoder import gnewsdecoder
+import base64
+
+def decode_google_news_url(url):
+    try:
+        if "/articles/" in url:
+            parts = url.split("/articles/")[1]
+            parts = parts.split("?")[0].split("&")[0]
+            clean_parts = re.sub(r'[^A-Za-z0-9\-_]', '', parts)
+            rem = len(clean_parts) % 4
+            if rem == 1:
+                clean_parts = clean_parts[:-1]
+            elif rem == 2:
+                clean_parts += "=="
+            elif rem == 3:
+                clean_parts += "="
+            decoded_bytes = base64.urlsafe_b64decode(clean_parts)
+            decoded_str = decoded_bytes.decode('utf-8', errors='ignore')
+            match = re.search(r'(https?://[^\s\x00-\x1f\x7f-\xff]+)', decoded_str)
+            if match:
+                clean_url = match.group(1)
+                clean_url = re.sub(r'[^\w\d\-\.\_\~\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\%].*$', '', clean_url)
+                return clean_url
+    except Exception as e:
+        print(f"Decode failed: {e}")
+    return url
 
 import json
 import os
@@ -31,8 +55,16 @@ POLITICAL_CRIME_KEYWORDS = [
     "bjp", "congress", "scam", "corruption"
 ]
 
-def is_relevant_civic_update(title, description):
-    text = (title + " " + description).lower()
+def is_relevant_civic_update(title, description, url=""):
+    text = (title + " " + description + " " + (url or "")).lower()
+    
+    # Exclude other states/cities to prevent Google News autocorrect overlaps
+    EXCLUDE_KEYWORDS = ["ranchi", "bengaluru", "bangalore", "karnataka", "gurugram", "gurgaon", "haryana", 
+                        "noida", "vijayawada", "andhra", "kerala", "delhi", "mumbai", "maharashtra", 
+                        "kolkata", "hyderabad", "telangana", "patna", "bihar", "jharkhand", "ranchi"]
+    if any(word in text for word in EXCLUDE_KEYWORDS):
+        return False
+        
     if any(word in text for word in POLITICAL_CRIME_KEYWORDS):
         return False
     if any(word in text for word in CIVIC_KEYWORDS):
@@ -65,32 +97,42 @@ def ingest_real_data():
             if not db.query(Constituency).filter(Constituency.name == c_name, Constituency.district == district).first():
                 db.add(Constituency(name=c_name, district=district))
     db.commit()
-
+ 
     constituencies = db.query(Constituency).all()
     today = datetime.date.today()
     
-    # Run broad civic news queries district-wise (with deduplication)
-    all_entries = [] # List of tuples: (entry, target_district)
+    # Target major municipal corporations and populated districts where civic news is active
+    MAJOR_CIVIC_DISTRICTS = [
+        "Chennai North", "Chennai Central", "Chennai South", "Coimbatore", "Madurai", 
+        "Tiruchirappalli", "Salem", "Tirunelveli", "Vellore", "Thanjavur", "Thiruvallur", "Chengalpattu"
+    ]
+    
+    all_entries = [] # List of tuples: (entry, district)
     processed_search_keys = set()
     
-    for district_name in TN_MAPPING.keys():
-        # Deduplicate search key: Chennai zones all query "Chennai"
+    for district_name in MAJOR_CIVIC_DISTRICTS:
+        if district_name not in TN_MAPPING:
+            continue
         search_key = "Chennai" if "Chennai" in district_name else district_name
         if search_key in processed_search_keys:
             continue
         processed_search_keys.add(search_key)
         
-        # Single efficient query per district/city
-        q = f"{search_key}+civic+issues+road+garbage+water"
-        url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
+        # Two highly-focused queries to retrieve road, water, drainage and garbage updates
+        queries = [
+            f"{search_key}+Tamil+Nadu+road+pothole+traffic",
+            f"{search_key}+Tamil+Nadu+garbage+waste+water+drainage"
+        ]
         
-        try:
-            feed = feedparser.parse(url)
-            # Take top 5 entries per district to avoid rate limits
-            for entry in feed.entries[:5]:
-                all_entries.append((entry, district_name))
-        except Exception as e:
-            print(f"Failed parsing feed for query {q}: {e}")
+        for q in queries:
+            url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
+            try:
+                feed = feedparser.parse(url)
+                # Parse top 8 articles to get high-density real updates quickly
+                for entry in feed.entries[:8]:
+                    all_entries.append((entry, district_name))
+            except Exception as e:
+                print(f"Failed parsing feed for query {q}: {e}")
             
     print(f"Aggregated {len(all_entries)} potential news updates before filtering. Filtering for civic updates...")
     
@@ -105,23 +147,17 @@ def ingest_real_data():
             parts = raw_title.rsplit(" - ", 1)
             title = parts[0]
             source = parts[1]
-
+ 
         # Extract entry summary to test relevance
         summary_soup = BeautifulSoup(entry.summary, 'html.parser')
         summary_text = summary_soup.get_text()
-
+ 
         # Relevance filtering
-        if not is_relevant_civic_update(title, summary_text):
+        if not is_relevant_civic_update(title, summary_text, link):
             continue
         
         # Decode Google News redirect URL (only for relevant items!)
-        real_url = link
-        try:
-            decoded = gnewsdecoder(link)
-            if decoded.get("status"):
-                real_url = decoded["decoded_url"]
-        except Exception as e:
-            print(f"Decoder failed for {link}: {e}")
+        real_url = decode_google_news_url(link)
             
         # Check if this article already exists in DB
         exists = db.query(CivicUpdate).filter(CivicUpdate.article_url == real_url).first()
