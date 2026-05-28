@@ -1027,14 +1027,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const saveGoogleFormUrlBtn = document.getElementById("save-google-form-url");
     const launchGoogleFormBtn = document.getElementById("launch-google-form-btn");
     const configStatus = document.getElementById("config-status");
+    const fbSubmitter = document.getElementById("fb-submitter");
 
     // Load saved Google Form link on startup
     function initGoogleFormLink() {
         const savedUrl = localStorage.getItem("aoj_google_form_url");
-        if (savedUrl) {
-            if (googleFormUrlInput) googleFormUrlInput.value = savedUrl;
-            if (launchGoogleFormBtn) launchGoogleFormBtn.href = savedUrl;
+        if (savedUrl && googleFormUrlInput) {
+            googleFormUrlInput.value = savedUrl;
         }
+    }
+
+    // Dynamic Google Form prefilled URL constructor
+    function getGoogleFormPrefilledUrl() {
+        const baseUrl = localStorage.getItem("aoj_google_form_url") || "https://forms.google.com";
+        const sender = fbSubmitter ? fbSubmitter.value.trim() : "";
+        const areaInput = document.getElementById("fb-area");
+        const area = areaInput ? areaInput.value.trim() : "";
+
+        let url = baseUrl;
+        if (url.includes("docs.google.com/forms")) {
+            url = url.replace("SENDER_NAME", encodeURIComponent(sender))
+                     .replace("SENDER_AREA", encodeURIComponent(area));
+        }
+        return url;
+    }
+
+    // Save and load sender identity locally
+    if (fbSubmitter) {
+        const savedSender = localStorage.getItem("aoj_sender_identity");
+        if (savedSender) fbSubmitter.value = savedSender;
+        fbSubmitter.addEventListener("input", (e) => {
+            localStorage.setItem("aoj_sender_identity", e.target.value.trim());
+        });
     }
 
     // Intercept clicks on feed cards to force programmatic window.open for Electron compliance
@@ -1042,9 +1066,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!container) return;
         container.addEventListener("click", (e) => {
             const anchor = e.target.closest("a");
-            if (anchor && anchor.href && anchor.href !== "#" && !anchor.href.startsWith("javascript:")) {
-                e.preventDefault();
-                window.open(anchor.href, "_blank");
+            if (anchor) {
+                const href = anchor.getAttribute("href");
+                if (href && href !== "#" && href !== "" && !href.startsWith("javascript:")) {
+                    e.preventDefault();
+                    window.open(anchor.href, "_blank");
+                }
             }
         });
     }
@@ -1054,6 +1081,14 @@ document.addEventListener("DOMContentLoaded", () => {
     setupLinkInterception(updatesOfTheDayGrid);
     setupLinkInterception(subDashboardFeed);
     setupLinkInterception(feedbackLogBody);
+
+    if (launchGoogleFormBtn) {
+        launchGoogleFormBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const targetUrl = getGoogleFormPrefilledUrl();
+            window.open(targetUrl, "_blank");
+        });
+    }
 
     if (saveGoogleFormUrlBtn) {
         saveGoogleFormUrlBtn.addEventListener("click", () => {
