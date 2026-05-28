@@ -1037,6 +1037,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // Intercept clicks on feed cards to force programmatic window.open for Electron compliance
+    function setupLinkInterception(container) {
+        if (!container) return;
+        container.addEventListener("click", (e) => {
+            const anchor = e.target.closest("a");
+            if (anchor && anchor.href && anchor.href !== "#" && !anchor.href.startsWith("javascript:")) {
+                e.preventDefault();
+                window.open(anchor.href, "_blank");
+            }
+        });
+    }
+
+    // Bind link interception to all feed containers
+    setupLinkInterception(updatesFeed);
+    setupLinkInterception(updatesOfTheDayGrid);
+    setupLinkInterception(subDashboardFeed);
+    setupLinkInterception(feedbackLogBody);
+
     if (saveGoogleFormUrlBtn) {
         saveGoogleFormUrlBtn.addEventListener("click", () => {
             const url = googleFormUrlInput ? googleFormUrlInput.value.trim() : "";
