@@ -26,10 +26,9 @@ CIVIC_KEYWORDS = [
 ]
 
 POLITICAL_CRIME_KEYWORDS = [
-    "election", "political", "politics", "minister", "mla", "mp", "arrest", "arrested", "police", "court", 
-    "protest", "clash", "murder", "theft", "robbery", "accused", "assault", "dmk", "admk", "tvk", 
-    "bjp", "congress", "chief minister", "stalin", "scam", "corruption", "council meeting", "councillor",
-    "delay", "postponed", "petition"
+    "election", "political campaign", "nomination", "arrest", "arrested", 
+    "clash", "murder", "theft", "robbery", "accused", "assault", "dmk", "admk", "tvk", 
+    "bjp", "congress", "scam", "corruption"
 ]
 
 def is_relevant_civic_update(title, description):
@@ -123,6 +122,11 @@ def ingest_real_data():
                 real_url = decoded["decoded_url"]
         except Exception as e:
             print(f"Decoder failed for {link}: {e}")
+            
+        # Check if this article already exists in DB
+        exists = db.query(CivicUpdate).filter(CivicUpdate.article_url == real_url).first()
+        if exists:
+            continue
             
         # Try to find a matching constituency in title, else random from the same district
         district_constituencies = [c for c in constituencies if c.district == district_name]
