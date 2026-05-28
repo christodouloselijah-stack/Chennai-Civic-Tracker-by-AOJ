@@ -56,9 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const subDashboardFeed = document.getElementById("sub-dashboard-feed");
     const subDashboardFeedTitle = document.getElementById("sub-dashboard-feed-title");
 
-    // Set default month to current
-    const now = new Date();
-    monthSelect.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     // Mock Teams Data
     const teamsData = [
@@ -68,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: "comm.north@chennaicorporation.gov.in",
             phone: "+91 44 2561 9301",
             zones: "Royapuram, Harbour, Egmore",
-            constituencyId: 7, // Royapuram
+            constituencyId: 22, // Royapuram
             status: "On Duty"
         },
         {
@@ -77,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: "aee.roads@chennaicorporation.gov.in",
             phone: "+91 94451 90022",
             zones: "Anna Nagar, Kolathur, Villivakkam",
-            constituencyId: 3, // Kolathur
+            constituencyId: 20, // Kolathur
             status: "In Field"
         },
         {
@@ -86,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: "se.swd@chennaicorporation.gov.in",
             phone: "+91 94451 90115",
             zones: "Velachery, Mylapore, Saidapet",
-            constituencyId: 16, // Velachery
+            constituencyId: 15, // Velachery
             status: "On Duty"
         },
         {
@@ -95,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: "rdc.central@chennaicorporation.gov.in",
             phone: "+91 44 2561 9305",
             zones: "Thousand Lights, Virugampakkam, T. Nagar",
-            constituencyId: 10, // Thousand Lights
+            constituencyId: 27, // Thousand Lights
             status: "On Duty"
         },
         {
@@ -104,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: "zo13@chennaicorporation.gov.in",
             phone: "+91 94451 90013",
             zones: "Velachery, Mylapore, Saidapet",
-            constituencyId: 15, // Mylapore
+            constituencyId: 14, // Mylapore
             status: "In Field"
         },
         {
@@ -113,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: "ae.sanitation@chennaicorporation.gov.in",
             phone: "+91 94451 90289",
             zones: "Thiru-Vi-Ka-Nagar, Egmore",
-            constituencyId: 5, // Thiru-Vi-Ka-Nagar
+            constituencyId: 21, // Thiru-Vi-Ka-Nagar
             status: "On Leave"
         }
     ];
