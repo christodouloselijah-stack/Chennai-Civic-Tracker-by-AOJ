@@ -87,9 +87,9 @@ def download_all_aggregate_report(month: Optional[str] = None, db: Session = Dep
         except ValueError:
             pass
     updates = query.all()
-    pdf_buffer = generate_pdf_report("Chennai (Overall)", updates, month)
+    pdf_buffer = generate_pdf_report("Tamil Nadu (Overall)", updates, month)
     headers = {
-        'Content-Disposition': 'attachment; filename="overall_chennai_report.pdf"'
+        'Content-Disposition': 'attachment; filename="overall_tamil_nadu_report.pdf"'
     }
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
 

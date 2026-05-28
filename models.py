@@ -5,7 +5,8 @@ from database import Base
 class Constituency(Base):
     __tablename__ = "constituencies"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
+    name = Column(String, index=True)
+    district = Column(String, index=True)
     
     updates = relationship("CivicUpdate", back_populates="constituency")
 

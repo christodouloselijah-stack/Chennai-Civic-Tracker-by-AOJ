@@ -133,40 +133,103 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    let allConstituencies = [];
+    let selectedConstituencyIds = [];
+
     // Update the visual selection summary text
     function updateSelectedText() {
         if (!dropdownSelectedText || !checkboxSelectAll) return;
         const checkedBoxes = document.querySelectorAll(".constituency-checkbox:checked");
-        if (checkboxSelectAll.checked) {
-            dropdownSelectedText.textContent = "Overall Chennai (All)";
-            selectedConstituencyIds = []; // Empty list represents overall aggregate
+        const totalCount = document.querySelectorAll(".constituency-checkbox").length;
+        
+        if (checkedBoxes.length === totalCount && totalCount > 0) {
+            dropdownSelectedText.textContent = "All Tamil Nadu (All)";
+            checkboxSelectAll.checked = true;
+            selectedConstituencyIds = []; // Empty represents overall aggregate
         } else if (checkedBoxes.length === 0) {
             dropdownSelectedText.textContent = "No Constituency Selected";
-            selectedConstituencyIds = ["none"]; 
-        } else if (checkedBoxes.length === allConstituencies.length) {
-            dropdownSelectedText.textContent = "Overall Chennai (All)";
-            checkboxSelectAll.checked = true;
-            selectedConstituencyIds = [];
-        } else if (checkedBoxes.length === 1) {
-            dropdownSelectedText.textContent = checkedBoxes[0].nextElementSibling.textContent;
-            selectedConstituencyIds = [checkedBoxes[0].value];
+            checkboxSelectAll.checked = false;
+            selectedConstituencyIds = ["none"];
         } else {
-            dropdownSelectedText.textContent = `${checkedBoxes.length} Selected`;
+            checkboxSelectAll.checked = false;
             selectedConstituencyIds = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            // Check if exactly one district is fully selected
+            const districtGroups = {};
+            document.querySelectorAll(".constituency-checkbox").forEach(cb => {
+                const dist = cb.getAttribute("data-district");
+                if (!districtGroups[dist]) districtGroups[dist] = { total: 0, checked: 0 };
+                districtGroups[dist].total++;
+                if (cb.checked) districtGroups[dist].checked++;
+            });
+            
+            const fullySelectedDistricts = Object.keys(districtGroups).filter(d => districtGroups[d].checked === districtGroups[d].total);
+            const partiallySelectedDistricts = Object.keys(districtGroups).filter(d => districtGroups[d].checked > 0 && districtGroups[d].checked < districtGroups[d].total);
+            
+            if (fullySelectedDistricts.length === 1 && partiallySelectedDistricts.length === 0) {
+                dropdownSelectedText.textContent = `${fullySelectedDistricts[0]} (All)`;
+            } else if (checkedBoxes.length <= 2) {
+                dropdownSelectedText.textContent = Array.from(checkedBoxes).map(cb => cb.getAttribute("data-name")).join(", ");
+            } else {
+                dropdownSelectedText.textContent = `${checkedBoxes.length} Selected`;
+            }
         }
     }
 
     // Toggle All Checkboxes
     if (checkboxSelectAll) {
         checkboxSelectAll.addEventListener("change", () => {
-            const checkBoxes = document.querySelectorAll(".constituency-checkbox");
-            checkBoxes.forEach(cb => {
-                cb.checked = checkboxSelectAll.checked;
+            const isChecked = checkboxSelectAll.checked;
+            document.querySelectorAll(".constituency-checkbox").forEach(cb => {
+                cb.checked = isChecked;
+            });
+            document.querySelectorAll(".district-checkbox").forEach(cb => {
+                cb.checked = isChecked;
             });
             updateSelectedText();
             loadData();
         });
-    }    // Fetch constituencies for dropdown
+    }
+
+    // Dropdown Search Input
+    const dropdownSearch = document.getElementById("dropdown-search");
+    if (dropdownSearch) {
+        dropdownSearch.addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const groupContainers = document.querySelectorAll(".district-group-container");
+            
+            groupContainers.forEach(container => {
+                const districtName = container.getAttribute("data-district-name").toLowerCase();
+                const items = container.querySelectorAll(".constituency-item");
+                let hasVisibleItem = false;
+                
+                items.forEach(item => {
+                    const cName = item.getAttribute("data-constituency-name").toLowerCase();
+                    if (cName.includes(query) || districtName.includes(query)) {
+                        item.style.display = "flex";
+                        hasVisibleItem = true;
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
+                
+                if (hasVisibleItem || districtName.includes(query)) {
+                    container.style.display = "block";
+                    // Automatically expand if typing search query
+                    const listContainer = container.querySelector(".constituency-list-container");
+                    const toggleIcon = container.querySelector(".toggle-icon");
+                    if (query !== "" && listContainer && listContainer.classList.contains("hidden")) {
+                        listContainer.classList.remove("hidden");
+                        if (toggleIcon) toggleIcon.classList.add("rotate-90");
+                    }
+                } else {
+                    container.style.display = "none";
+                }
+            });
+        });
+    }
+
+    // Fetch constituencies for dropdown
     fetch("/api/constituencies")
         .then(response => response.json())
         .then(data => {
@@ -174,22 +237,105 @@ document.addEventListener("DOMContentLoaded", () => {
             
             if (checkboxOptionsList) {
                 checkboxOptionsList.innerHTML = "";
+                
+                // Group by district
+                const grouped = {};
                 data.forEach(c => {
-                    const label = document.createElement("label");
-                    label.className = "flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm font-medium text-gray-700";
-                    label.innerHTML = `
-                        <input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 constituency-checkbox" value="${c.id}" checked>
-                        <span>${c.name}</span>
-                    `;
-                    checkboxOptionsList.appendChild(label);
+                    const dist = c.district || "Other";
+                    if (!grouped[dist]) grouped[dist] = [];
+                    grouped[dist].push(c);
                 });
-
-                // Bind individual checkbox changes
+                
+                // Sort districts
+                const sortedDistricts = Object.keys(grouped).sort();
+                
+                sortedDistricts.forEach(distName => {
+                    const distGroup = document.createElement("div");
+                    distGroup.className = "district-group-container border-b border-gray-100 pb-2 mb-2 last:border-b-0";
+                    distGroup.setAttribute("data-district-name", distName);
+                    
+                    // District Header row
+                    const headerRow = document.createElement("div");
+                    headerRow.className = "flex items-center justify-between px-2 py-1 bg-gray-50 hover:bg-gray-100 rounded cursor-pointer select-none";
+                    
+                    const leftContainer = document.createElement("label");
+                    leftContainer.className = "flex items-center gap-2 cursor-pointer flex-1 py-1";
+                    leftContainer.innerHTML = `
+                        <input type="checkbox" class="district-checkbox rounded text-indigo-600 focus:ring-indigo-500 border-gray-300" data-district="${distName}" checked>
+                        <span class="text-xs font-bold text-gray-800">${distName}</span>
+                    `;
+                    
+                    const toggleBtn = document.createElement("button");
+                    toggleBtn.className = "p-1 hover:bg-gray-200 rounded text-gray-500 focus:outline-none flex items-center justify-center";
+                    toggleBtn.innerHTML = `
+                        <svg class="toggle-icon w-3 h-3 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    `;
+                    
+                    headerRow.appendChild(leftContainer);
+                    headerRow.appendChild(toggleBtn);
+                    
+                    // Constituency sub-list container (hidden by default to avoid huge lists scrolling forever)
+                    // We can default expand the first few or expand when searched. Let's make them hidden by default for cleaner UI.
+                    const listContainer = document.createElement("div");
+                    listContainer.className = "constituency-list-container pl-6 pt-1 space-y-1 hidden";
+                    
+                    grouped[distName].forEach(c => {
+                        const item = document.createElement("label");
+                        item.className = "constituency-item flex items-center gap-2 px-2 py-1 hover:bg-indigo-50 rounded cursor-pointer text-xs font-medium text-gray-600";
+                        item.setAttribute("data-constituency-name", c.name);
+                        item.innerHTML = `
+                            <input type="checkbox" class="constituency-checkbox rounded text-indigo-600 focus:ring-indigo-500 border-gray-300" value="${c.id}" data-district="${distName}" data-name="${c.name}" checked>
+                            <span>${c.name}</span>
+                        `;
+                        listContainer.appendChild(item);
+                    });
+                    
+                    distGroup.appendChild(headerRow);
+                    distGroup.appendChild(listContainer);
+                    checkboxOptionsList.appendChild(distGroup);
+                    
+                    // Bind collapse toggle
+                    const toggleCollapse = (e) => {
+                        if (e) e.stopPropagation();
+                        listContainer.classList.toggle("hidden");
+                        const icon = toggleBtn.querySelector(".toggle-icon");
+                        if (icon) icon.classList.toggle("rotate-90");
+                    };
+                    
+                    toggleBtn.addEventListener("click", toggleCollapse);
+                    // Clicking the text label of header should expand too, but NOT clicking the checkbox
+                    headerRow.addEventListener("click", (e) => {
+                        if (e.target.tagName !== "INPUT" && !toggleBtn.contains(e.target)) {
+                            toggleCollapse();
+                        }
+                    });
+                });
+                
+                // Bind individual constituency checkbox changes
                 document.querySelectorAll(".constituency-checkbox").forEach(cb => {
                     cb.addEventListener("change", () => {
-                        if (checkboxSelectAll && !cb.checked) {
-                            checkboxSelectAll.checked = false;
-                        }
+                        const dist = cb.getAttribute("data-district");
+                        const distCheckbox = document.querySelector(`.district-checkbox[data-district="${dist}"]`);
+                        
+                        // Check if all in district are checked
+                        const siblings = document.querySelectorAll(`.constituency-checkbox[data-district="${dist}"]`);
+                        const allChecked = Array.from(siblings).every(s => s.checked);
+                        if (distCheckbox) distCheckbox.checked = allChecked;
+                        
+                        updateSelectedText();
+                        loadData();
+                    });
+                });
+                
+                // Bind district checkbox changes
+                document.querySelectorAll(".district-checkbox").forEach(db => {
+                    db.addEventListener("change", () => {
+                        const dist = db.getAttribute("data-district");
+                        const siblings = document.querySelectorAll(`.constituency-checkbox[data-district="${dist}"]`);
+                        siblings.forEach(s => s.checked = db.checked);
+                        
                         updateSelectedText();
                         loadData();
                     });

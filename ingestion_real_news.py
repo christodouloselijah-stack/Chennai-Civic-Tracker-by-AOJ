@@ -10,24 +10,12 @@ from database import engine, SessionLocal, Base
 from models import Constituency, CivicUpdate
 from googlenewsdecoder import gnewsdecoder
 
-CONSTITUENCIES = [
-    "Dr. Radhakrishnan Nagar", "Perambur", "Kolathur", "Villivakkam",
-    "Thiru-Vi-Ka-Nagar", "Egmore", "Royapuram", "Harbour",
-    "Chepauk-Thiruvallikeni", "Thousand Lights", "Anna Nagar",
-    "Virugampakkam", "Saidapet", "Thiyagarayanagar", "Mylapore", "Velachery"
-]
+import json
+import os
 
-QUERIES = [
-    "Chennai+corporation+civic+issues",
-    "Chennai+road+repair+pavement+potholes",
-    "Chennai+stormwater+drain+construction+flooding",
-    "Chennai+garbage+clearance+waste+management",
-    "Chennai+street+lights+dark+spots",
-    "Chennai+metro+water+sewerage+leakage",
-    "Chennai+GCC+development+infrastructure",
-    "Chennai+encroachments+eviction+removal",
-    "Chennai+traffic+diversion+flyover"
-]
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(BASE_DIR, 'tn_constituencies.json'), 'r', encoding='utf-8') as f:
+    TN_MAPPING = json.load(f)
 
 CIVIC_KEYWORDS = [
     "road", "repair", "pothole", "pave", "paving", "lay", "laying", "drain", "stormwater", 
@@ -46,15 +34,10 @@ POLITICAL_CRIME_KEYWORDS = [
 
 def is_relevant_civic_update(title, description):
     text = (title + " " + description).lower()
-    
-    # Must not contain political or crime news
     if any(word in text for word in POLITICAL_CRIME_KEYWORDS):
         return False
-        
-    # Must contain at least one local civic keyword
     if any(word in text for word in CIVIC_KEYWORDS):
         return True
-        
     return False
 
 def get_og_image(url):
@@ -77,31 +60,42 @@ def ingest_real_data():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     
-    # Ensure constituencies exist
-    for c_name in CONSTITUENCIES:
-        if not db.query(Constituency).filter(Constituency.name == c_name).first():
-            db.add(Constituency(name=c_name))
+    # Ensure all constituencies and their districts exist in database
+    for district, constituencies_list in TN_MAPPING.items():
+        for c_name in constituencies_list:
+            if not db.query(Constituency).filter(Constituency.name == c_name, Constituency.district == district).first():
+                db.add(Constituency(name=c_name, district=district))
     db.commit()
 
     constituencies = db.query(Constituency).all()
     today = datetime.date.today()
     
-    # Aggregate entries from multiple queries
-    all_entries = {}
-    for q in QUERIES:
+    # Run broad civic news queries district-wise (with deduplication)
+    all_entries = [] # List of tuples: (entry, target_district)
+    processed_search_keys = set()
+    
+    for district_name in TN_MAPPING.keys():
+        # Deduplicate search key: Chennai zones all query "Chennai"
+        search_key = "Chennai" if "Chennai" in district_name else district_name
+        if search_key in processed_search_keys:
+            continue
+        processed_search_keys.add(search_key)
+        
+        # Single efficient query per district/city
+        q = f"{search_key}+civic+issues+road+garbage+water"
         url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
+        
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:12]: # Grab top 12 from each query to filter later
-                if entry.link not in all_entries:
-                    all_entries[entry.link] = entry
+            # Take top 5 entries per district to avoid rate limits
+            for entry in feed.entries[:5]:
+                all_entries.append((entry, district_name))
         except Exception as e:
             print(f"Failed parsing feed for query {q}: {e}")
             
-    entries = list(all_entries.values())
-    print(f"Aggregated {len(entries)} unique news updates before filtering. Filtering for civic updates...")
+    print(f"Aggregated {len(all_entries)} potential news updates before filtering. Filtering for civic updates...")
     
-    for entry in entries:
+    for entry, district_name in all_entries:
         raw_title = entry.title
         link = entry.link
         
@@ -130,9 +124,13 @@ def ingest_real_data():
         except Exception as e:
             print(f"Decoder failed for {link}: {e}")
             
-        # Try to find a matching constituency in title, else random
-        matched_c = next((c for c in constituencies if c.name.lower() in title.lower()), None)
-        constituency = matched_c if matched_c else random.choice(constituencies)
+        # Try to find a matching constituency in title, else random from the same district
+        district_constituencies = [c for c in constituencies if c.district == district_name]
+        if not district_constituencies:
+            district_constituencies = constituencies # Fallback
+            
+        matched_c = next((c for c in district_constituencies if c.name.lower() in title.lower()), None)
+        constituency = matched_c if matched_c else random.choice(district_constituencies)
         
         status = random.choice(["Reported", "In Progress", "Resolved"])
         image_url = get_og_image(real_url)

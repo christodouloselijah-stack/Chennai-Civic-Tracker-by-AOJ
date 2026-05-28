@@ -5,6 +5,8 @@ import feedparser
 import requests
 import re
 import urllib.parse
+import json
+import os
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
@@ -12,20 +14,9 @@ from models import Constituency, CivicUpdate
 from googlenewsdecoder import gnewsdecoder
 from ingestion_real_news import is_relevant_civic_update, get_og_image
 
-CONSTITUENCIES = [
-    "Dr. Radhakrishnan Nagar", "Perambur", "Kolathur", "Villivakkam",
-    "Thiru-Vi-Ka-Nagar", "Egmore", "Royapuram", "Harbour",
-    "Chepauk-Thiruvallikeni", "Thousand Lights", "Anna Nagar",
-    "Virugampakkam", "Saidapet", "Thiyagarayanagar", "Mylapore", "Velachery"
-]
-
-QUERIES = [
-    "Chennai+corporation+civic+issues",
-    "Chennai+road+repair+pavement+potholes",
-    "Chennai+stormwater+drain+construction+flooding",
-    "Chennai+garbage+clearance+waste+management",
-    "Chennai+street+lights+dark+spots"
-]
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(BASE_DIR, 'tn_constituencies.json'), 'r', encoding='utf-8') as f:
+    TN_MAPPING = json.load(f)
 
 # Date ranges to backfill
 MONTH_RANGES = [
@@ -40,10 +31,11 @@ def backfill():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     
-    # Ensure constituencies exist
-    for c_name in CONSTITUENCIES:
-        if not db.query(Constituency).filter(Constituency.name == c_name).first():
-            db.add(Constituency(name=c_name))
+    # Ensure all constituencies and their districts exist in database
+    for district, constituencies_list in TN_MAPPING.items():
+        for c_name in constituencies_list:
+            if not db.query(Constituency).filter(Constituency.name == c_name, Constituency.district == district).first():
+                db.add(Constituency(name=c_name, district=district))
     db.commit()
 
     constituencies = db.query(Constituency).all()
@@ -51,27 +43,36 @@ def backfill():
     print("Starting historical backfill from January to May 2026...")
     total_added = 0
 
+    # Get deduplicated list of search keys to run queries
+    processed_search_keys = set()
+    search_keys = []
+    for district_name in TN_MAPPING.keys():
+        search_key = "Chennai" if "Chennai" in district_name else district_name
+        if search_key not in processed_search_keys:
+            processed_search_keys.add(search_key)
+            search_keys.append((search_key, district_name))
+
     for month_name, start_date, end_date in MONTH_RANGES:
         print(f"\nFetching data for {month_name} 2026 ({start_date} to {end_date})...")
-        month_entries = {}
+        month_entries = [] # List of tuples: (entry, district_name)
         
-        for q in QUERIES:
+        for search_key, district_name in search_keys:
             # Construct Google News RSS query with date parameters
+            q = f"{search_key}+civic+issues+road+garbage+water"
             url = f"https://news.google.com/rss/search?q={q}+after:{start_date}+before:{end_date}&hl=en-IN&gl=IN&ceid=IN:en"
             try:
                 feed = feedparser.parse(url)
-                # Take top 8 entries from each query per month to build a good database size
-                for entry in feed.entries[:8]:
-                    if entry.link not in month_entries:
-                        month_entries[entry.link] = entry
+                # Take top 3 entries per query to keep run time and API usage reasonable
+                for entry in feed.entries[:3]:
+                    month_entries.append((entry, district_name))
+                time.sleep(0.2) # Small delay to be polite
             except Exception as e:
                 print(f"Failed parsing feed for {month_name} query '{q}': {e}")
         
-        entries = list(month_entries.values())
-        print(f"Collected {len(entries)} unique potential articles for {month_name}. Filtering and decoding...")
+        print(f"Collected {len(month_entries)} unique potential articles for {month_name}. Filtering and decoding...")
         
         added_in_month = 0
-        for entry in entries:
+        for entry, district_name in month_entries:
             raw_title = entry.title
             link = entry.link
             
@@ -126,8 +127,12 @@ def backfill():
                 article_date = datetime.date(year, month_num, day)
 
             # Match constituency
-            matched_c = next((c for c in constituencies if c.name.lower() in title.lower()), None)
-            constituency = matched_c if matched_c else random.choice(constituencies)
+            district_constituencies = [c for c in constituencies if c.district == district_name]
+            if not district_constituencies:
+                district_constituencies = constituencies
+                
+            matched_c = next((c for c in district_constituencies if c.name.lower() in title.lower()), None)
+            constituency = matched_c if matched_c else random.choice(district_constituencies)
             
             status = random.choice(["Reported", "In Progress", "Resolved"])
             image_url = get_og_image(real_url)
@@ -135,7 +140,7 @@ def backfill():
             # Scrape description
             description = ""
             try:
-                headers = {"User-Agent": "Mozilla/5.0"}
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
                 response = requests.get(real_url, headers=headers, timeout=4, allow_redirects=True)
                 page_soup = BeautifulSoup(response.text, 'html.parser')
                 paragraphs = [p.get_text().strip() for p in page_soup.find_all('p') if len(p.get_text().strip()) > 50]
@@ -171,3 +176,4 @@ def backfill():
 
 if __name__ == "__main__":
     backfill()
+
