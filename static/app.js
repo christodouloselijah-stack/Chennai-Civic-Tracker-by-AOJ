@@ -112,6 +112,42 @@ document.addEventListener("DOMContentLoaded", () => {
             zones: "Thiru-Vi-Ka-Nagar, Egmore",
             constituencyId: 21, // Thiru-Vi-Ka-Nagar
             status: "On Leave"
+        },
+        {
+            name: "Shri. M. Prathap, IAS",
+            role: "Corporation Commissioner (Coimbatore)",
+            email: "commr.coimbatore@tn.gov.in",
+            phone: "+91 422 230 2491",
+            zones: "Coimbatore (South), Coimbatore (North), Singanallur",
+            constituencyId: 122, // Coimbatore (South)
+            status: "On Duty"
+        },
+        {
+            name: "Dr. L. Madhubalan, IAS",
+            role: "Corporation Commissioner (Madurai)",
+            email: "commr.madurai@tn.gov.in",
+            phone: "+91 452 253 9161",
+            zones: "Madurai Central, Madurai East, Melur",
+            constituencyId: 193, // Madurai Central
+            status: "In Field"
+        },
+        {
+            name: "Smt. R. Vaithinathan, IAS",
+            role: "Corporation Commissioner (Trichy)",
+            email: "commr.trichy@tn.gov.in",
+            phone: "+91 431 241 5437",
+            zones: "Tiruchirappalli (West), Tiruchirappalli (East)",
+            constituencyId: 140, // Tiruchirappalli (West)
+            status: "On Duty"
+        },
+        {
+            name: "Shri. T. Christuraj, IAS",
+            role: "Corporation Commissioner (Salem)",
+            email: "commr.salem@tn.gov.in",
+            phone: "+91 427 221 2100",
+            zones: "Salem (North), Salem (West), Salem (South)",
+            constituencyId: 89, // Salem (North)
+            status: "On Duty"
         }
     ];
 
