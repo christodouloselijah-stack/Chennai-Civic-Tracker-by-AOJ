@@ -204,3 +204,13 @@ def create_feedback(feedback_in: FeedbackCreate, db: Session = Depends(get_db)):
 @app.get("/api/feedback")
 def get_feedback(db: Session = Depends(get_db)):
     return db.query(Feedback).order_by(Feedback.id.desc()).all()
+
+@app.post("/api/admin/seed")
+@app.get("/api/admin/seed")
+def trigger_cloud_ingestion():
+    from ingestion_real_news import ingest_real_data
+    import threading
+    # Run in a background thread to prevent HTTP gateway timeout on Render/web servers
+    threading.Thread(target=ingest_real_data, daemon=True).start()
+    return {"status": "success", "message": "Background ingestion triggered successfully"}
+
