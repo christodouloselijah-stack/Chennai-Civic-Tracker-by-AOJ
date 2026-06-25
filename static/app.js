@@ -10,7 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const downloadBtn = document.getElementById("download-btn");
     const dashboardContent = document.getElementById("dashboard-content");
     const emptyState = document.getElementById("empty-state");
-    const monthSelect = document.getElementById("month-select");
+    const monthDropdownContainer = document.getElementById("month-dropdown-container");
+    const monthDropdownBtnSelect = document.getElementById("month-dropdown-btn-select");
+    const monthDropdownSelectedText = document.getElementById("month-dropdown-selected-text");
+    const monthDropdownOptionsMenu = document.getElementById("month-dropdown-options-menu");
+    const monthCheckboxSelectAll = document.getElementById("month-checkbox-select-all");
+    const monthCheckboxOptionsList = document.getElementById("month-checkbox-options-list");
 
     const statTotal = document.getElementById("stat-total");
     const statReported = document.getElementById("stat-reported");
@@ -162,13 +167,110 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    if (monthDropdownBtnSelect) {
+        monthDropdownBtnSelect.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (monthDropdownOptionsMenu) monthDropdownOptionsMenu.classList.toggle("hidden");
+        });
+    }
+
     // Close dropdown when clicking outside
     document.addEventListener("click", (e) => {
         const container = document.getElementById("constituency-dropdown-container");
         if (container && !container.contains(e.target)) {
             if (dropdownOptionsMenu) dropdownOptionsMenu.classList.add("hidden");
         }
+        const m_container = document.getElementById("month-dropdown-container");
+        if (m_container && !m_container.contains(e.target)) {
+            if (monthDropdownOptionsMenu) monthDropdownOptionsMenu.classList.add("hidden");
+        }
     });
+
+    let selectedMonths = [];
+    function updateMonthSelectedText() {
+        if (!monthDropdownSelectedText || !monthCheckboxSelectAll) return;
+        const checkedBoxes = document.querySelectorAll(".month-checkbox:checked");
+        const totalCount = document.querySelectorAll(".month-checkbox").length;
+        
+        if (checkedBoxes.length === totalCount && totalCount > 0) {
+            monthDropdownSelectedText.textContent = "All Months";
+            monthCheckboxSelectAll.checked = true;
+            selectedMonths = []; // Empty represents overall aggregate
+        } else if (checkedBoxes.length === 0) {
+            monthDropdownSelectedText.textContent = "No Months Selected";
+            monthCheckboxSelectAll.checked = false;
+            selectedMonths = ["none"];
+        } else {
+            monthCheckboxSelectAll.checked = false;
+            selectedMonths = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            if (checkedBoxes.length <= 2) {
+                const labels = Array.from(checkedBoxes).map(cb => cb.nextElementSibling.textContent);
+                monthDropdownSelectedText.textContent = labels.join(", ");
+            } else {
+                monthDropdownSelectedText.textContent = `${checkedBoxes.length} Months Selected`;
+            }
+        }
+    }
+
+    function populateMonths() {
+        if (!monthCheckboxOptionsList) return;
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth(); // 0-11
+        
+        const months = [];
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        
+        // List from Jan 2025 to the current month of the current year
+        for (let y = currentYear; y >= 2025; y--) {
+            const startM = (y === currentYear) ? currentMonth : 11;
+            for (let m = startM; m >= 0; m--) {
+                const monthStr = `${y}-${String(m + 1).padStart(2, '0')}`;
+                const label = `${monthNames[m]} ${y}`;
+                months.push({ value: monthStr, label: label });
+            }
+        }
+        
+        monthCheckboxOptionsList.innerHTML = months.map(m => `
+            <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-indigo-50 rounded cursor-pointer text-xs">
+                <input type="checkbox" class="month-checkbox rounded text-indigo-600 focus:ring-indigo-500 border-gray-300" value="${m.value}" checked>
+                <span>${m.label}</span>
+            </label>
+        `).join('');
+        
+        document.querySelectorAll(".month-checkbox").forEach(cb => {
+            cb.addEventListener("change", () => {
+                updateMonthSelectedText();
+                if (currentTab === "dashboard") {
+                    loadData();
+                } else if (currentTab === "reports") {
+                    loadReports();
+                }
+            });
+        });
+        
+        if (monthCheckboxSelectAll) {
+            monthCheckboxSelectAll.addEventListener("change", (e) => {
+                const checked = e.target.checked;
+                document.querySelectorAll(".month-checkbox").forEach(cb => {
+                    cb.checked = checked;
+                });
+                updateMonthSelectedText();
+                if (currentTab === "dashboard") {
+                    loadData();
+                } else if (currentTab === "reports") {
+                    loadReports();
+                }
+            });
+        }
+        
+        updateMonthSelectedText();
+    }
+
+    populateMonths();
 
     let allConstituencies = [];
     let selectedConstituencyIds = [];
@@ -389,7 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dashboard Data Loading
     function loadData() {
-        const monthVal = monthSelect.value;
+        const monthVal = selectedMonths.includes("none") ? "none" : selectedMonths.join(",");
         updatesFeed.innerHTML = "";
         updatesOfTheDayGrid.innerHTML = "";
         updatesOfTheDaySection.classList.add("hidden");
@@ -427,7 +529,11 @@ document.addEventListener("DOMContentLoaded", () => {
                                 const latestDate = allData[0].date;
                                 if (latestDate) {
                                     const parts = latestDate.split("-");
-                                    monthSelect.value = `${parts[0]}-${parts[1]}`;
+                                    const fallbackMonth = `${parts[0]}-${parts[1]}`;
+                                    document.querySelectorAll(".month-checkbox").forEach(cb => {
+                                        cb.checked = (cb.value === fallbackMonth);
+                                    });
+                                    updateMonthSelectedText();
                                     loadData();
                                 }
                             }
@@ -566,14 +672,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const dropdownContainer = document.getElementById("constituency-dropdown-container");
 
-    monthSelect.addEventListener("change", () => {
-        if (currentTab === "dashboard") {
-            loadData();
-        } else if (currentTab === "reports") {
-            loadReports();
-        }
-    });
-
     // Navigation and Page Routing
     function switchTab(tab) {
         currentTab = tab;
@@ -603,7 +701,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Header view default hides
         if (dropdownContainer) dropdownContainer.classList.remove("hidden");
-        monthSelect.classList.remove("hidden");
+        if (monthDropdownContainer) monthDropdownContainer.classList.remove("hidden");
         downloadBtn.classList.add("hidden");
 
         if (tab === "dashboard") {
@@ -626,7 +724,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (mobileNavTeams) mobileNavTeams.classList.remove("opacity-60");
             headerTitle.textContent = "Municipal Teams";
             if (dropdownContainer) dropdownContainer.classList.add("hidden");
-            monthSelect.classList.add("hidden");
+            if (monthDropdownContainer) monthDropdownContainer.classList.add("hidden");
             teamsContent.classList.remove("hidden");
             loadTeams();
         } else if (tab === "feedback") {
@@ -635,7 +733,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (mobileNavFeedback) mobileNavFeedback.classList.remove("opacity-60");
             headerTitle.textContent = "Collaboration Portal";
             if (dropdownContainer) dropdownContainer.classList.add("hidden");
-            monthSelect.classList.add("hidden");
+            if (monthDropdownContainer) monthDropdownContainer.classList.add("hidden");
             if (feedbackContent) feedbackContent.classList.remove("hidden");
             loadFeedbackLog();
         }
@@ -662,7 +760,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `;
         
-        const monthVal = monthSelect.value;
+        const monthVal = selectedMonths.includes("none") ? "none" : selectedMonths.join(",");
         let url = "/api/all_stats";
         if (monthVal) url += `?month=${monthVal}`;
 

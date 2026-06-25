@@ -85,7 +85,25 @@
                         </div>
                     </div>
                 </div>
-                <input type="month" id="month-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white w-full sm:w-auto">
+                <!-- Custom Multi-select Dropdown for Months -->
+                <div class="relative w-full sm:min-w-[200px]" id="month-dropdown-container">
+                    <button id="month-dropdown-btn-select" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium text-gray-700 bg-white w-full flex items-center justify-between text-left focus:outline-none select-none">
+                        <span id="month-dropdown-selected-text" class="truncate">Select Months</span>
+                        <svg class="w-4 h-4 text-gray-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="month-dropdown-options-menu" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 flex flex-col p-2">
+                        <div class="overflow-y-auto flex-1 space-y-1">
+                            <!-- "Select All" Option -->
+                            <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-indigo-50 rounded cursor-pointer text-xs font-bold text-indigo-700 border-b border-gray-100 pb-2 mb-1">
+                                <input type="checkbox" id="month-checkbox-select-all" class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                <span>All Months</span>
+                            </label>
+                            <div id="month-checkbox-options-list" class="space-y-1">
+                                <!-- Injected dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <button id="download-btn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg shadow-md transition flex items-center justify-center gap-2 w-full sm:w-auto">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export PDF

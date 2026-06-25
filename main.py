@@ -44,29 +44,33 @@ def read_root(request: Request):
 def get_constituencies(db: Session = Depends(get_db)):
     return db.query(Constituency).all()
 
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_
 from typing import Optional
+
+def apply_month_filter(query, model_class, month: Optional[str]):
+    if month:
+        months_list = month.split(',')
+        filters = []
+        for m_str in months_list:
+            try:
+                y, m = map(int, m_str.split('-'))
+                filters.append((extract('year', model_class.date) == y) & (extract('month', model_class.date) == m))
+            except ValueError:
+                pass
+        if filters:
+            query = query.filter(or_(*filters))
+    return query
 
 @app.get("/api/updates/all")
 def get_all_updates(month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate)
-    if month:
-        try:
-            y, m = map(int, month.split('-'))
-            query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-        except ValueError:
-            pass
+    query = apply_month_filter(query, CivicUpdate, month)
     return query.order_by(CivicUpdate.date.desc()).all()
 
 @app.get("/api/stats/all_aggregate")
 def get_all_aggregate_stats(month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate)
-    if month:
-        try:
-            y, m = map(int, month.split('-'))
-            query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-        except ValueError:
-            pass
+    query = apply_month_filter(query, CivicUpdate, month)
     updates = query.all()
     total = len(updates)
     resolved = sum(1 for u in updates if u.status == "Resolved")
@@ -82,12 +86,7 @@ def get_all_aggregate_stats(month: Optional[str] = None, db: Session = Depends(g
 @app.get("/api/reports/all_aggregate/download")
 def download_all_aggregate_report(month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate)
-    if month:
-        try:
-            y, m = map(int, month.split('-'))
-            query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-        except ValueError:
-            pass
+    query = apply_month_filter(query, CivicUpdate, month)
     updates = query.all()
     pdf_buffer = generate_pdf_report("Tamil Nadu (Overall)", updates, month)
     headers = {
@@ -98,12 +97,7 @@ def download_all_aggregate_report(month: Optional[str] = None, db: Session = Dep
 @app.get("/api/updates/{constituency_id}")
 def get_updates(constituency_id: int, month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == constituency_id)
-    if month:
-        try:
-            y, m = map(int, month.split('-'))
-            query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-        except ValueError:
-            pass
+    query = apply_month_filter(query, CivicUpdate, month)
     return query.order_by(CivicUpdate.date.desc()).all()
 
 @app.get("/api/all_stats")
@@ -112,12 +106,7 @@ def get_all_stats(month: Optional[str] = None, db: Session = Depends(get_db)):
     result = []
     for c in constituencies:
         query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == c.id)
-        if month:
-            try:
-                y, m = map(int, month.split('-'))
-                query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-            except ValueError:
-                pass
+        query = apply_month_filter(query, CivicUpdate, month)
         updates = query.all()
         total = len(updates)
         resolved = sum(1 for u in updates if u.status == "Resolved")
@@ -136,12 +125,7 @@ def get_all_stats(month: Optional[str] = None, db: Session = Depends(get_db)):
 @app.get("/api/stats/{constituency_id}")
 def get_stats(constituency_id: int, month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == constituency_id)
-    if month:
-        try:
-            y, m = map(int, month.split('-'))
-            query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-        except ValueError:
-            pass
+    query = apply_month_filter(query, CivicUpdate, month)
     updates = query.all()
     total = len(updates)
     resolved = sum(1 for u in updates if u.status == "Resolved")
@@ -161,12 +145,7 @@ def download_report(constituency_id: int, month: Optional[str] = None, db: Sessi
         return {"error": "Constituency not found"}
         
     query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == constituency_id)
-    if month:
-        try:
-            y, m = map(int, month.split('-'))
-            query = query.filter(extract('year', CivicUpdate.date) == y, extract('month', CivicUpdate.date) == m)
-        except ValueError:
-            pass
+    query = apply_month_filter(query, CivicUpdate, month)
     
     updates = query.all()
     pdf_buffer = generate_pdf_report(constituency.name, updates, month)
