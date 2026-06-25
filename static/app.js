@@ -234,9 +234,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        monthCheckboxOptionsList.innerHTML = months.map(m => `
+        monthCheckboxOptionsList.innerHTML = months.map((m, idx) => `
             <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-indigo-50 rounded cursor-pointer text-xs">
-                <input type="checkbox" class="month-checkbox rounded text-indigo-600 focus:ring-indigo-500 border-gray-300" value="${m.value}" checked>
+                <input type="checkbox" class="month-checkbox rounded text-indigo-600 focus:ring-indigo-500 border-gray-300" value="${m.value}" ${idx < 3 ? 'checked' : ''}>
                 <span>${m.label}</span>
             </label>
         `).join('');
