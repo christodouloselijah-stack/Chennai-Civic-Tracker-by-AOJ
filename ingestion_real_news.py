@@ -41,35 +41,77 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, 'tn_constituencies.json'), 'r', encoding='utf-8') as f:
     TN_MAPPING = json.load(f)
 
-CIVIC_KEYWORDS = [
-    "road", "repair", "pothole", "pave", "paving", "lay", "laying", "drain", "stormwater", 
-    "sewage", "sewer", "water", "leak", "leakage", "garbage", "waste", "dump", "bin", "trash", 
-    "light", "illumination", "park", "playground", "encroachment", "eviction", "demolish", "demolition",
-    "widening", "canal", "bridge", "flyover", "subway", "sanitation", "cleaning", "beautification",
-    "infrastructure", "renovation", "construction"
+# Keywords for Civic Infrastructure categories
+CIVIC_CATEGORIES = {
+    "Water & Drainage": ["drain", "water", "flood", "sew", "canal", "rainwater", "swd"],
+    "Roads & Traffic": ["road", "pothole", "pavement", "bridge", "street", "flyover", "highway", "traffic"],
+    "Garbage & Sanitation": ["garbage", "waste", "trash", "clean", "dump", "litter", "sanitation", "dustbin"],
+    "Electricity & Power": ["light", "power", "electr", "dark", "wire", "cable", "transformer"]
+}
+
+# Keywords for Government Social Impact categories
+SOCIAL_IMPACT_CATEGORIES = {
+    "Public Health & Addiction": ["addiction", "drug", "alcohol", "rehab", "liquor", "tasmac", "substance abuse", "tobacco", "public health"],
+    "Road Safety": ["road safety", "helmet", "traffic signal", "speed limit", "accident reduction", "zebra crossing", "pedestrian"],
+    "Education Quality": ["school", "education", "smart class", "teacher", "admission", "student", "college", "literacy", "library"],
+    "Healthcare Access": ["hospital", "clinic", "healthcare", "medicine", "doctor", "nurse", "treatment", "phc", "medical camp"],
+    "Women's Safety & Empowerment": ["women", "girl", "safety", "empowerment", "shg", "self help group", "helpline", "pudhumai penn"],
+    "Environment & Water": ["lake", "pollution", "water conservation", "tree", "forest", "greenery", "climate", "wetland", "eco"],
+    "Employment & Livelihoods": ["employment", "job", "livelihood", "skill training", "unemployed", "fair", "placement", "startup"],
+    "Social Justice & Equality": ["caste", "discrimination", "equality", "social justice", "tribal", "scheduled caste", "dalit", "welfare board"],
+    "Urban Planning": ["smart city", "urban planning", "housing board", "metro", "park", "beautification", "town", "corporation layout"],
+    "Governance & Transparency": ["corruption", "governance", "transparency", "e-governance", "complaint", "cm helpline", "grievance", "rti"]
+}
+
+# Positive action keywords showing betterment
+ACTION_KEYWORDS = [
+    "scheme", "welfare", "fund", "sanction", "inaugurate", "appoint", "action", "improve", 
+    "betterment", "launch", "benefit", "renovate", "construct", "policy", "project", 
+    "commission", "distribute", "assist", "free", "announce", "setup", "allocation", "subsid"
 ]
 
 POLITICAL_CRIME_KEYWORDS = [
     "election", "political campaign", "nomination", "arrest", "arrested", 
     "clash", "murder", "theft", "robbery", "accused", "assault", "dmk", "admk", "tvk", 
-    "bjp", "congress", "scam", "corruption"
+    "bjp", "congress", "scam", "corruption case", "corruption charges", "bribe arrest"
 ]
 
-def is_relevant_civic_update(title, description, url=""):
+def classify_update(title, description, url=""):
     text = (title + " " + description + " " + (url or "")).lower()
     
-    # Exclude other states/cities to prevent Google News autocorrect overlaps
+    # Exclude other states/cities to prevent Google News overlaps
     EXCLUDE_KEYWORDS = ["ranchi", "bengaluru", "bangalore", "karnataka", "gurugram", "gurgaon", "haryana", 
                         "noida", "vijayawada", "andhra", "kerala", "delhi", "mumbai", "maharashtra", 
                         "kolkata", "hyderabad", "telangana", "patna", "bihar", "jharkhand", "ranchi"]
     if any(word in text for word in EXCLUDE_KEYWORDS):
-        return False
+        return None, None
         
-    if any(word in text for word in POLITICAL_CRIME_KEYWORDS):
-        return False
-    if any(word in text for word in CIVIC_KEYWORDS):
-        return True
-    return False
+    if any(word in text for word in POLITICAL_CRIME_KEYWORDS) and "e-governance" not in text and "grievance" not in text:
+        return None, None
+        
+    # 1. Check Civic Infrastructure First
+    is_civic = any(word in text for word in [
+        "road", "repair", "pothole", "pave", "paving", "lay", "laying", "drain", "stormwater", 
+        "sewage", "sewer", "water", "leak", "leakage", "garbage", "waste", "dump", "bin", "trash", 
+        "light", "illumination", "park", "playground", "encroachment", "eviction", "demolish", "demolition",
+        "widening", "canal", "bridge", "flyover", "subway", "sanitation", "cleaning", "beautification",
+        "infrastructure", "renovation", "construction"
+    ])
+    
+    if is_civic:
+        for cat_name, keywords in CIVIC_CATEGORIES.items():
+            if any(word in text for word in keywords):
+                return "civic", cat_name
+        return "civic", "General Civic Issues"
+
+    # 2. Check Government Social Impact (Needs positive action keyword)
+    has_action = any(word in text for word in ACTION_KEYWORDS)
+    if has_action:
+        for cat_name, keywords in SOCIAL_IMPACT_CATEGORIES.items():
+            if any(word in text for word in keywords):
+                return "social_impact", cat_name
+                
+    return None, None
 
 def get_og_image(url):
     try:
@@ -91,7 +133,7 @@ def ingest_real_data():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     
-    # Ensure all constituencies and their districts exist in database
+    # Ensure all constituencies exist in DB
     for district, constituencies_list in TN_MAPPING.items():
         for c_name in constituencies_list:
             if not db.query(Constituency).filter(Constituency.name == c_name, Constituency.district == district).first():
@@ -111,24 +153,26 @@ def ingest_real_data():
             continue
         processed_search_keys.add(search_key)
         
-        # Two queries per district to fetch roads, traffic, water, and waste management updates
+        # Combined queries to pull both Civic and Social Impact reports
         queries = [
             f"{search_key}+Tamil+Nadu+road+pothole+traffic",
-            f"{search_key}+Tamil+Nadu+garbage+waste+water+drainage"
+            f"{search_key}+Tamil+Nadu+garbage+waste+water+drainage",
+            f"{search_key}+Tamil+Nadu+scheme+welfare+health+education",
+            f"{search_key}+Tamil+Nadu+safety+environment+employment+governance"
         ]
         
         for q in queries:
             url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
             try:
                 feed = feedparser.parse(url)
-                # Parse top 3 articles per query to ensure fast run time while covering all districts
+                # Parse top 3 articles per query
                 for entry in feed.entries[:3]:
                     all_entries.append((entry, district_name))
-                time.sleep(0.1) # Delay to prevent Google News rate-limiting
+                time.sleep(0.05) # Prevent rate-limiting
             except Exception as e:
                 print(f"Failed parsing feed for query {q}: {e}")
             
-    print(f"Aggregated {len(all_entries)} potential news updates before filtering. Filtering for civic updates...")
+    print(f"Aggregated {len(all_entries)} potential news updates before filtering. Filtering and classifying...")
     
     for entry, district_name in all_entries:
         raw_title = entry.title
@@ -146,11 +190,12 @@ def ingest_real_data():
         summary_soup = BeautifulSoup(entry.summary, 'html.parser')
         summary_text = summary_soup.get_text()
  
-        # Relevance filtering
-        if not is_relevant_civic_update(title, summary_text, link):
+        # Classification & Filtering
+        up_type, up_cat = classify_update(title, summary_text, link)
+        if not up_type:
             continue
         
-        # Decode Google News redirect URL (only for relevant items!)
+        # Decode Google News redirect URL
         real_url = decode_google_news_url(link)
             
         # Check if this article already exists in DB
@@ -169,16 +214,14 @@ def ingest_real_data():
         status = random.choice(["Reported", "In Progress", "Resolved"])
         image_url = get_og_image(real_url)
         
-        # Scrape full description (paragraphs) from real URL
+        # Scrape description
         description = ""
         try:
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
-            response = requests.get(real_url, headers=headers, timeout=6, allow_redirects=True)
+            response = requests.get(real_url, headers=headers, timeout=5, allow_redirects=True)
             page_soup = BeautifulSoup(response.text, 'html.parser')
-            # Extract paragraphs that look like article content
             paragraphs = [p.get_text().strip() for p in page_soup.find_all('p') if len(p.get_text().strip()) > 50]
             if paragraphs:
-                # Take first 3 paragraphs and join them
                 description = "\n\n".join(paragraphs[:3])
         except Exception as e:
             print(f"Failed to scrape body for {real_url}: {e}")
@@ -188,7 +231,7 @@ def ingest_real_data():
             if len(description) > 300:
                 description = description[:300] + "..."
         
-        # Parse the published date
+        # Parse published date
         article_date = today
         if hasattr(entry, 'published_parsed') and entry.published_parsed:
             try:
@@ -205,7 +248,9 @@ def ingest_real_data():
             image_url=image_url,
             date=article_date,
             source=source,
-            article_url=real_url
+            article_url=real_url,
+            type=up_type,
+            category=up_cat
         )
         db.add(update)
     

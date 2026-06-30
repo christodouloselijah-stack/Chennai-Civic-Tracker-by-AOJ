@@ -21,6 +21,8 @@ class CivicUpdate(Base):
     date = Column(Date)
     source = Column(String)
     article_url = Column(String)
+    type = Column(String, default="civic", index=True)
+    category = Column(String, index=True)
 
     constituency = relationship("Constituency", back_populates="updates")
 

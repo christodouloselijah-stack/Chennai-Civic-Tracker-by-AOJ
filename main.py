@@ -47,7 +47,9 @@ def get_constituencies(db: Session = Depends(get_db)):
 from sqlalchemy import func, extract, or_
 from typing import Optional
 
-def apply_month_filter(query, model_class, month: Optional[str]):
+def apply_filters(query, model_class, type: Optional[str] = "civic", month: Optional[str] = None):
+    if type and type != "all":
+        query = query.filter(model_class.type == type)
     if month:
         months_list = month.split(',')
         filters = []
@@ -62,15 +64,15 @@ def apply_month_filter(query, model_class, month: Optional[str]):
     return query
 
 @app.get("/api/updates/all")
-def get_all_updates(month: Optional[str] = None, db: Session = Depends(get_db)):
+def get_all_updates(type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate)
-    query = apply_month_filter(query, CivicUpdate, month)
+    query = apply_filters(query, CivicUpdate, type, month)
     return query.order_by(CivicUpdate.date.desc()).all()
 
 @app.get("/api/stats/all_aggregate")
-def get_all_aggregate_stats(month: Optional[str] = None, db: Session = Depends(get_db)):
+def get_all_aggregate_stats(type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate)
-    query = apply_month_filter(query, CivicUpdate, month)
+    query = apply_filters(query, CivicUpdate, type, month)
     updates = query.all()
     total = len(updates)
     resolved = sum(1 for u in updates if u.status == "Resolved")
@@ -84,9 +86,9 @@ def get_all_aggregate_stats(month: Optional[str] = None, db: Session = Depends(g
     }
 
 @app.get("/api/reports/all_aggregate/download")
-def download_all_aggregate_report(month: Optional[str] = None, db: Session = Depends(get_db)):
+def download_all_aggregate_report(type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate)
-    query = apply_month_filter(query, CivicUpdate, month)
+    query = apply_filters(query, CivicUpdate, type, month)
     updates = query.all()
     pdf_buffer = generate_pdf_report("Tamil Nadu (Overall)", updates, month)
     headers = {
@@ -95,18 +97,18 @@ def download_all_aggregate_report(month: Optional[str] = None, db: Session = Dep
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
 
 @app.get("/api/updates/{constituency_id}")
-def get_updates(constituency_id: int, month: Optional[str] = None, db: Session = Depends(get_db)):
+def get_updates(constituency_id: int, type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == constituency_id)
-    query = apply_month_filter(query, CivicUpdate, month)
+    query = apply_filters(query, CivicUpdate, type, month)
     return query.order_by(CivicUpdate.date.desc()).all()
 
 @app.get("/api/all_stats")
-def get_all_stats(month: Optional[str] = None, db: Session = Depends(get_db)):
+def get_all_stats(type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     constituencies = db.query(Constituency).all()
     result = []
     for c in constituencies:
         query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == c.id)
-        query = apply_month_filter(query, CivicUpdate, month)
+        query = apply_filters(query, CivicUpdate, type, month)
         updates = query.all()
         total = len(updates)
         resolved = sum(1 for u in updates if u.status == "Resolved")
@@ -123,9 +125,9 @@ def get_all_stats(month: Optional[str] = None, db: Session = Depends(get_db)):
     return result
 
 @app.get("/api/stats/{constituency_id}")
-def get_stats(constituency_id: int, month: Optional[str] = None, db: Session = Depends(get_db)):
+def get_stats(constituency_id: int, type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == constituency_id)
-    query = apply_month_filter(query, CivicUpdate, month)
+    query = apply_filters(query, CivicUpdate, type, month)
     updates = query.all()
     total = len(updates)
     resolved = sum(1 for u in updates if u.status == "Resolved")
@@ -139,13 +141,13 @@ def get_stats(constituency_id: int, month: Optional[str] = None, db: Session = D
     }
 
 @app.get("/api/reports/{constituency_id}/download")
-def download_report(constituency_id: int, month: Optional[str] = None, db: Session = Depends(get_db)):
+def download_report(constituency_id: int, type: Optional[str] = "civic", month: Optional[str] = None, db: Session = Depends(get_db)):
     constituency = db.query(Constituency).filter(Constituency.id == constituency_id).first()
     if not constituency:
         return {"error": "Constituency not found"}
         
     query = db.query(CivicUpdate).filter(CivicUpdate.constituency_id == constituency_id)
-    query = apply_month_filter(query, CivicUpdate, month)
+    query = apply_filters(query, CivicUpdate, type, month)
     
     updates = query.all()
     pdf_buffer = generate_pdf_report(constituency.name, updates, month)

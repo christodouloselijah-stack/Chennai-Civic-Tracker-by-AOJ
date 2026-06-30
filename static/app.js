@@ -43,8 +43,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const updatesOfTheDaySection = document.getElementById("updates-of-the-day-section");
     const updatesOfTheDayGrid = document.getElementById("updates-of-the-day-grid");
 
+    const typeSelectorContainer = document.getElementById("type-selector-container");
+    const typeBtnCivic = document.getElementById("type-btn-civic");
+    const typeBtnSocial = document.getElementById("type-btn-social");
+
     let statusChartInstance = null;
     let currentTab = "dashboard";
+    let currentType = "civic";
     let currentUpdatesData = [];
     let hasAttemptedFallback = false;
 
@@ -268,6 +273,41 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         updateMonthSelectedText();
+    }
+
+    // Toggle Type Selection
+    if (typeBtnCivic && typeBtnSocial) {
+        typeBtnCivic.addEventListener("click", () => {
+            if (currentType === "civic") return;
+            currentType = "civic";
+            
+            // Toggle active classes
+            typeBtnCivic.className = "px-4 py-1.5 rounded-md text-xs font-semibold bg-white text-indigo-700 shadow-sm transition duration-150 focus:outline-none";
+            typeBtnSocial.className = "px-4 py-1.5 rounded-md text-xs font-semibold text-gray-500 hover:text-gray-900 transition duration-150 focus:outline-none";
+            
+            hasAttemptedFallback = false;
+            if (currentTab === "dashboard") {
+                loadData();
+            } else if (currentTab === "reports") {
+                loadReports();
+            }
+        });
+        
+        typeBtnSocial.addEventListener("click", () => {
+            if (currentType === "social_impact") return;
+            currentType = "social_impact";
+            
+            // Toggle active classes
+            typeBtnSocial.className = "px-4 py-1.5 rounded-md text-xs font-semibold bg-white text-indigo-700 shadow-sm transition duration-150 focus:outline-none";
+            typeBtnCivic.className = "px-4 py-1.5 rounded-md text-xs font-semibold text-gray-500 hover:text-gray-900 transition duration-150 focus:outline-none";
+            
+            hasAttemptedFallback = false;
+            if (currentTab === "dashboard") {
+                loadData();
+            } else if (currentTab === "reports") {
+                loadReports();
+            }
+        });
     }
 
     populateMonths();
@@ -500,19 +540,19 @@ document.addEventListener("DOMContentLoaded", () => {
         dashboardContent.classList.remove("hidden");
         downloadBtn.classList.remove("hidden");
         
-        let updatesUrl = `/api/updates/all`;
+        let updatesUrl = `/api/updates/all?type=${currentType}`;
         if (monthVal) {
-            updatesUrl += `?month=${monthVal}`;
+            updatesUrl += `&month=${monthVal}`;
         }
 
         // Configure Export button
         downloadBtn.onclick = () => {
             const checkedBoxes = document.querySelectorAll(".constituency-checkbox:checked");
-            let url = `/api/reports/all_aggregate/download`;
+            let url = `/api/reports/all_aggregate/download?type=${currentType}`;
             if (checkedBoxes.length === 1) {
-                url = `/api/reports/${checkedBoxes[0].value}/download`;
+                url = `/api/reports/${checkedBoxes[0].value}/download?type=${currentType}`;
             }
-            if (monthVal) url += (url.includes("?") ? "&" : "?") + `month=${monthVal}`;
+            if (monthVal) url += `&month=${monthVal}`;
             window.location.href = url;
         };
 
@@ -522,7 +562,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Fallback to the latest month containing data if the current selection has no data on initial load
                 if (fetchedData.length === 0 && !hasAttemptedFallback && monthVal) {
                     hasAttemptedFallback = true;
-                    fetch(`/api/updates/all`)
+                    fetch(`/api/updates/all?type=${currentType}`)
                         .then(r => r.json())
                         .then(allData => {
                             if (allData && allData.length > 0) {
@@ -702,6 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Header view default hides
         if (dropdownContainer) dropdownContainer.classList.remove("hidden");
         if (monthDropdownContainer) monthDropdownContainer.classList.remove("hidden");
+        if (typeSelectorContainer) typeSelectorContainer.classList.remove("hidden");
         downloadBtn.classList.add("hidden");
 
         if (tab === "dashboard") {
@@ -725,6 +766,7 @@ document.addEventListener("DOMContentLoaded", () => {
             headerTitle.textContent = "Municipal Teams";
             if (dropdownContainer) dropdownContainer.classList.add("hidden");
             if (monthDropdownContainer) monthDropdownContainer.classList.add("hidden");
+            if (typeSelectorContainer) typeSelectorContainer.classList.add("hidden");
             teamsContent.classList.remove("hidden");
             loadTeams();
         } else if (tab === "feedback") {
@@ -734,6 +776,7 @@ document.addEventListener("DOMContentLoaded", () => {
             headerTitle.textContent = "Collaboration Portal";
             if (dropdownContainer) dropdownContainer.classList.add("hidden");
             if (monthDropdownContainer) monthDropdownContainer.classList.add("hidden");
+            if (typeSelectorContainer) typeSelectorContainer.classList.add("hidden");
             if (feedbackContent) feedbackContent.classList.remove("hidden");
             loadFeedbackLog();
         }
@@ -761,8 +804,8 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         
         const monthVal = selectedMonths.includes("none") ? "none" : selectedMonths.join(",");
-        let url = "/api/all_stats";
-        if (monthVal) url += `?month=${monthVal}`;
+        let url = `/api/all_stats?type=${currentType}`;
+        if (monthVal) url += `&month=${monthVal}`;
 
         fetch(url)
             .then(res => res.json())
@@ -822,8 +865,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll(".btn-download-pdf").forEach(btn => {
                     btn.addEventListener("click", (e) => {
                         const id = e.currentTarget.getAttribute("data-id");
-                        let url = `/api/reports/${id}/download`;
-                        if(monthVal) url += `?month=${monthVal}`;
+                        let url = `/api/reports/${id}/download?type=${currentType}`;
+                        if(monthVal) url += `&month=${monthVal}`;
                         window.location.href = url;
                     });
                 });
@@ -1028,23 +1071,30 @@ document.addEventListener("DOMContentLoaded", () => {
         subDashboardBadge.textContent = status === "Total" ? "All Issues" : status;
         
         subDashboardTitle.textContent = status === "Total" 
-            ? "Total Civic Issues Overview" 
-            : `${status} Issues Overview`;
+            ? (currentType === "civic" ? "Total Civic Issues Overview" : "Total Social Impact Overview")
+            : (currentType === "civic" ? `${status} Civic Issues Overview` : `${status} Social Impact Overview`);
 
         subDashboardSubtitle.textContent = `Showing details for ${filtered.length} issues in the current selection.`;
         subDashboardFeedTitle.textContent = `${status} Issues Feed (${filtered.length})`;
 
         // 1. Calculate Category breakdown
-        const categoriesCount = {
-            "Water & Drainage": 0,
-            "Roads & Traffic": 0,
-            "Garbage & Sanitation": 0,
-            "Electricity & Power": 0,
-            "General Civic Issues": 0
-        };
+        const categoriesCount = {};
+        if (currentType === "civic") {
+            ["Water & Drainage", "Roads & Traffic", "Garbage & Sanitation", "Electricity & Power", "General Civic Issues"].forEach(c => {
+                categoriesCount[c] = 0;
+            });
+        } else {
+            [
+                "Public Health & Addiction", "Road Safety", "Education Quality", "Healthcare Access",
+                "Women's Safety & Empowerment", "Environment & Water", "Employment & Livelihoods",
+                "Social Justice & Equality", "Urban Planning", "Governance & Transparency"
+            ].forEach(c => {
+                categoriesCount[c] = 0;
+            });
+        }
 
         filtered.forEach(u => {
-            const cat = getCategory(u.title, u.description);
+            const cat = u.category || (currentType === "civic" ? "General Civic Issues" : "Governance & Transparency");
             categoriesCount[cat] = (categoriesCount[cat] || 0) + 1;
         });
 
