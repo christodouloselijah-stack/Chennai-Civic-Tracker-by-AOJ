@@ -116,18 +116,54 @@ def classify_update(title, description, url=""):
 def get_og_image(url):
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.google.com/"
         }
-        response = requests.get(url, headers=headers, timeout=5, allow_redirects=True)
+        response = requests.get(url, headers=headers, timeout=6, allow_redirects=True)
         soup = BeautifulSoup(response.text, 'html.parser')
-        og_image = soup.find('meta', property='og:image')
+        
+        # 1. Try OpenGraph image metadata
+        og_image = soup.find('meta', property='og:image') or soup.find('meta', attrs={'name': 'og:image'})
         if og_image and og_image.get('content'):
             img_url = og_image['content'].strip()
             return urllib.parse.urljoin(url, img_url)
+            
+        # 2. Try Twitter image metadata
+        twitter_image = soup.find('meta', property='twitter:image') or soup.find('meta', attrs={'name': 'twitter:image'})
+        if twitter_image and twitter_image.get('content'):
+            img_url = twitter_image['content'].strip()
+            return urllib.parse.urljoin(url, img_url)
+            
+        # 3. Try legacy image_src links
+        img_src = soup.find('link', rel='image_src')
+        if img_src and img_src.get('href'):
+            return urllib.parse.urljoin(url, img_src['href'].strip())
+            
+        # 4. Search inline img elements in page content, filtering out icons, logos, trackers
+        img_tags = soup.find_all('img')
+        for img in img_tags:
+            src = img.get('src') or img.get('data-src') or img.get('data-original')
+            if src:
+                src = src.strip()
+                text_to_check = src.lower()
+                ignore_keywords = ["logo", "icon", "avatar", "pixel", "ad-", "banner", "spinner", "loader", "sprite", "nav"]
+                if any(kw in text_to_check for kw in ignore_keywords):
+                    continue
+                if any(ext in text_to_check for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                    return urllib.parse.urljoin(url, src)
+                    
     except Exception as e:
         print(f"Failed to fetch image for {url}: {e}")
-    
-    return f"https://picsum.photos/400/300?random={random.randint(1,1000)}"
+        
+    # High-quality realistic civic fallbacks when the page blocks access (403/Forbidden)
+    fallback_images = [
+        "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=600&q=80",
+        "https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?auto=format&fit=crop&w=600&q=80",
+        "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=600&q=80",
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80"
+    ]
+    return random.choice(fallback_images)
 
 def ingest_real_data():
     Base.metadata.create_all(bind=engine)
