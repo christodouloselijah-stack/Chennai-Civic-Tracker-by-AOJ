@@ -101,24 +101,17 @@ def ingest_real_data():
     constituencies = db.query(Constituency).all()
     today = datetime.date.today()
     
-    # Target major municipal corporations and populated districts where civic news is active
-    MAJOR_CIVIC_DISTRICTS = [
-        "Chennai North", "Chennai Central", "Chennai South", "Coimbatore", "Madurai", 
-        "Tiruchirappalli", "Salem", "Tirunelveli", "Vellore", "Thanjavur", "Thiruvallur", "Chengalpattu"
-    ]
-    
     all_entries = [] # List of tuples: (entry, district)
     processed_search_keys = set()
+    import time
     
-    for district_name in MAJOR_CIVIC_DISTRICTS:
-        if district_name not in TN_MAPPING:
-            continue
+    for district_name in TN_MAPPING.keys():
         search_key = "Chennai" if "Chennai" in district_name else district_name
         if search_key in processed_search_keys:
             continue
         processed_search_keys.add(search_key)
         
-        # Two highly-focused queries to retrieve road, water, drainage and garbage updates
+        # Two queries per district to fetch roads, traffic, water, and waste management updates
         queries = [
             f"{search_key}+Tamil+Nadu+road+pothole+traffic",
             f"{search_key}+Tamil+Nadu+garbage+waste+water+drainage"
@@ -128,9 +121,10 @@ def ingest_real_data():
             url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
             try:
                 feed = feedparser.parse(url)
-                # Parse top 8 articles to get high-density real updates quickly
-                for entry in feed.entries[:8]:
+                # Parse top 3 articles per query to ensure fast run time while covering all districts
+                for entry in feed.entries[:3]:
                     all_entries.append((entry, district_name))
+                time.sleep(0.1) # Delay to prevent Google News rate-limiting
             except Exception as e:
                 print(f"Failed parsing feed for query {q}: {e}")
             
